@@ -114,7 +114,7 @@ mod tests {
         {
             let encoder = TgaEncoder::new(&mut encoded_data);
             encoder
-                .encode(&image, width, height, c)
+                .encode(image, width, height, c)
                 .expect("could not encode image");
         }
 

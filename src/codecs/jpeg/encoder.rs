@@ -956,15 +956,10 @@ mod tests {
         let result = encoder.write_image(&img, 65_536, 1, ColorType::L8);
         match result {
             Err(ImageError::Parameter(err)) => {
-                assert_eq!(err.kind(), DimensionMismatch)
+                assert_eq!(err.kind(), DimensionMismatch);
             }
             other => {
-                assert!(
-                    false,
-                    "Encoding an image that is too large should return a DimensionError \
-                                it returned {:?} instead",
-                    other
-                )
+                panic!("Encoding an image that is too large should return a DimensionError. it returned {:?} instead", other);
             }
         }
     }
@@ -1062,6 +1057,7 @@ mod tests {
         let qtable = [0u8; 64];
         build_quantization_segment(&mut buf, 8, 1, &qtable);
         let mut expected = vec![];
+        #[allow(clippy::identity_op)] // clarity
         expected.push(0 << 4 | 1);
         expected.extend_from_slice(&[0; 64]);
         assert_eq!(buf, expected)

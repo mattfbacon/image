@@ -303,45 +303,46 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_rotate90() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+        let image: GrayImage = ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(2, 3, vec![10u8, 00u8, 11u8, 01u8, 12u8, 02u8]).unwrap();
+            ImageBuffer::from_raw(2, 3, vec![10, 00, 11, 01, 12, 02]).unwrap();
 
         assert_pixels_eq!(&rotate90(&image), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_rotate180() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+        let image: GrayImage = ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![12u8, 11u8, 10u8, 02u8, 01u8, 00u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![12, 11, 10, 02, 01, 00]).unwrap();
 
         assert_pixels_eq!(&rotate180(&image), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_rotate270() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+        let image: GrayImage = ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(2, 3, vec![02u8, 12u8, 01u8, 11u8, 00u8, 10u8]).unwrap();
+            ImageBuffer::from_raw(2, 3, vec![02, 12, 01, 11, 00, 10]).unwrap();
 
         assert_pixels_eq!(&rotate270(&image), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_rotate180_in_place() {
         let mut image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![12u8, 11u8, 10u8, 02u8, 01u8, 00u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![12, 11, 10, 02, 01, 00]).unwrap();
 
         rotate180_in_place(&mut image);
 
@@ -349,34 +350,35 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_flip_horizontal() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+        let image: GrayImage = ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![02u8, 01u8, 00u8, 12u8, 11u8, 10u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![02, 01, 00, 12, 11, 10]).unwrap();
 
         assert_pixels_eq!(&flip_horizontal(&image), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_flip_vertical() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+        let image: GrayImage = ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![10u8, 11u8, 12u8, 00u8, 01u8, 02u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![10, 11, 12, 00, 01, 02]).unwrap();
 
         assert_pixels_eq!(&flip_vertical(&image), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_flip_horizontal_in_place() {
         let mut image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![02u8, 01u8, 00u8, 12u8, 11u8, 10u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![02, 01, 00, 12, 11, 10]).unwrap();
 
         flip_horizontal_in_place(&mut image);
 
@@ -384,18 +386,20 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_flip_vertical_in_place() {
         let mut image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![00u8, 01u8, 02u8, 10u8, 11u8, 12u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
 
         let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![10u8, 11u8, 12u8, 00u8, 01u8, 02u8]).unwrap();
+            ImageBuffer::from_raw(3, 2, vec![10, 11, 12, 00, 01, 02]).unwrap();
 
         flip_vertical_in_place(&mut image);
 
         assert_pixels_eq!(&image, &expected);
     }
 
+    #[allow(clippy::type_complexity)]
     fn pixel_diffs<I, J, P>(left: &I, right: &J) -> Vec<((u32, u32, P), (u32, u32, P))>
     where
         I: GenericImage<Pixel = P>,

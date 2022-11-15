@@ -1445,8 +1445,6 @@ mod tests {
     fn test_copy_sub_image() {
         let source = ImageBuffer::from_pixel(3, 3, Rgba([255u8, 0, 0, 255]));
         let view = source.view(0, 0, 3, 3);
-        let mut views = Vec::new();
-        views.push(view);
         view.to_image();
     }
 
@@ -1728,6 +1726,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_tl() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1750,6 +1749,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_tr() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1772,6 +1772,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_bl() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1794,6 +1795,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_br() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1818,7 +1820,7 @@ mod tests {
     #[test]
     fn image_formats_are_recognized() {
         use ImageFormat::*;
-        const ALL_FORMATS: &'static [ImageFormat] = &[
+        const ALL_FORMATS: &[ImageFormat] = &[
             Avif, Png, Jpeg, Gif, WebP, Pnm, Tiff, Tga, Dds, Bmp, Ico, Hdr, Farbfeld, OpenExr,
         ];
         for &format in ALL_FORMATS {
