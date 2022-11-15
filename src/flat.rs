@@ -312,7 +312,7 @@ impl SampleLayout {
             Some(size) => size,
         };
 
-        let _max_size = match max_dim.checked_len() {
+        match max_dim.checked_len() {
             None => return true,
             Some(_) => (), // Only want to know this didn't overflow.
         };

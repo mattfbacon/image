@@ -73,7 +73,7 @@ impl fmt::Display for DecoderError {
 
 impl From<DecoderError> for ImageError {
     fn from(e: DecoderError) -> ImageError {
-        ImageError::Decoding(DecodingError::new(ImageFormat::Ico.into(), e))
+        Self::Decoding(DecodingError::new(ImageFormat::Ico.into(), e))
     }
 }
 
@@ -91,17 +91,17 @@ enum IcoEntryImageFormat {
 impl fmt::Display for IcoEntryImageFormat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            IcoEntryImageFormat::Png => "PNG",
-            IcoEntryImageFormat::Bmp => "BMP",
+            Self::Png => "PNG",
+            Self::Bmp => "BMP",
         })
     }
 }
 
-impl Into<ImageFormat> for IcoEntryImageFormat {
-    fn into(self) -> ImageFormat {
-        match self {
-            IcoEntryImageFormat::Png => ImageFormat::Png,
-            IcoEntryImageFormat::Bmp => ImageFormat::Bmp,
+impl From<IcoEntryImageFormat> for ImageFormat {
+    fn from(ico: IcoEntryImageFormat) -> Self {
+        match ico {
+            IcoEntryImageFormat::Png => Self::Png,
+            IcoEntryImageFormat::Bmp => Self::Bmp,
         }
     }
 }
@@ -112,6 +112,7 @@ pub struct IcoDecoder<R: Read> {
     inner_decoder: InnerDecoder<R>,
 }
 
+#[allow(clippy::large_enum_variant)]
 enum InnerDecoder<R: Read> {
     Bmp(BmpDecoder<R>),
     Png(PngDecoder<R>),

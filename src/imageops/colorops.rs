@@ -408,11 +408,7 @@ impl ColorMap for BiLevel {
     #[inline(always)]
     fn index_of(&self, color: &Luma<u8>) -> usize {
         let luma = color.0;
-        if luma[0] > 127 {
-            1
-        } else {
-            0
-        }
+        (luma[0] > 127).into()
     }
 
     #[inline(always)]

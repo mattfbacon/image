@@ -8,19 +8,10 @@ mod reader;
 pub use self::reader::Reader;
 
 /// Set of supported strict limits for a decoder.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 #[allow(missing_copy_implementations)]
-pub struct LimitSupport {
-    _non_exhaustive: (),
-}
-
-impl Default for LimitSupport {
-    fn default() -> LimitSupport {
-        LimitSupport {
-            _non_exhaustive: (),
-        }
-    }
-}
+#[non_exhaustive]
+pub struct LimitSupport {}
 
 /// Resource limits for decoding.
 ///
@@ -44,7 +35,8 @@ impl Default for LimitSupport {
 /// [`LimitSupport`]: ./struct.LimitSupport.html
 /// [`ImageDecoder::set_limits`]: ../trait.ImageDecoder.html#method.set_limits
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-#[allow(missing_copy_implementations)]
+#[allow(missing_copy_implementations)] // may not be Copy in the future? idk
+#[non_exhaustive]
 pub struct Limits {
     /// The maximum allowed image width. This limit is strict. The default is no limit.
     pub max_image_width: Option<u32>,
@@ -54,7 +46,6 @@ pub struct Limits {
     /// allocator overhead. This limit is non-strict by default and some decoders may ignore it.
     /// The default is 512MiB.
     pub max_alloc: Option<u64>,
-    _non_exhaustive: (),
 }
 
 impl Default for Limits {
@@ -63,7 +54,6 @@ impl Default for Limits {
             max_image_width: None,
             max_image_height: None,
             max_alloc: Some(512 * 1024 * 1024),
-            _non_exhaustive: (),
         }
     }
 }
@@ -75,7 +65,6 @@ impl Limits {
             max_image_width: None,
             max_image_height: None,
             max_alloc: None,
-            _non_exhaustive: (),
         }
     }
 
@@ -126,11 +115,9 @@ impl Limits {
     pub fn reserve_usize(&mut self, amount: usize) -> ImageResult<()> {
         match u64::try_from(amount) {
             Ok(n) => self.reserve(n),
-            Err(_) if self.max_alloc.is_some() => {
-                return Err(ImageError::Limits(error::LimitError::from_kind(
-                    error::LimitErrorKind::InsufficientMemory,
-                )));
-            }
+            Err(_) if self.max_alloc.is_some() => Err(ImageError::Limits(
+                error::LimitError::from_kind(error::LimitErrorKind::InsufficientMemory),
+            )),
             Err(_) => {
                 // Out of bounds, but we weren't asked to consider any limit.
                 Ok(())

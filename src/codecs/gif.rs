@@ -423,7 +423,7 @@ impl<W: Write> GifEncoder<W> {
     /// for more information.
     pub fn new_with_speed(w: W, speed: i32) -> GifEncoder<W> {
         assert!(
-            speed >= 1 && speed <= 30,
+            (1..=30).contains(&speed),
             "speed needs to be in the range [1, 30]"
         );
         GifEncoder {
@@ -510,7 +510,7 @@ impl<W: Write> GifEncoder<W> {
         let (width, height) = self.gif_dimensions(rbga_frame.width(), rbga_frame.height())?;
 
         // Create the gif::Frame from the animation::Frame
-        let mut frame = Frame::from_rgba_speed(width, height, &mut *rbga_frame, self.speed);
+        let mut frame = Frame::from_rgba_speed(width, height, &mut rbga_frame, self.speed);
         // Saturate the conversion to u16::MAX instead of returning an error as that
         // would require a new special cased variant in ParameterErrorKind which most
         // likely couldn't be reused for other cases. This isn't a bad trade-off given

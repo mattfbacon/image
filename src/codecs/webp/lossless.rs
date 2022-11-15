@@ -278,6 +278,7 @@ impl<R: Read> LosslessDecoder<R> {
 
                     let mut color_map = self.decode_image_stream(color_table_size, 1, false)?;
 
+                    #[allow(clippy::bool_to_int_with_if)] // symmetry
                     let bits = if color_table_size <= 2 {
                         3
                     } else if color_table_size <= 4 {

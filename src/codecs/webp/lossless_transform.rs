@@ -213,6 +213,7 @@ impl TransformType {
                     Vec::with_capacity(usize::from(width) * usize::from(height));
 
                 let table_size = *table_size;
+                #[allow(clippy::bool_to_int_with_if)] // symmetry
                 let width_bits: u8 = if table_size <= 2 {
                     3
                 } else if table_size <= 4 {

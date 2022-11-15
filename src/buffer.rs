@@ -1086,7 +1086,7 @@ where
     type Target = [P::Subpixel];
 
     fn deref(&self) -> &<Self as Deref>::Target {
-        &*self.data
+        &self.data
     }
 }
 
@@ -1095,8 +1095,8 @@ where
     P: Pixel,
     Container: Deref<Target = [P::Subpixel]> + DerefMut,
 {
-    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
-        &mut *self.data
+    fn deref_mut(&mut self) -> &mut [P::Subpixel] {
+        &mut self.data
     }
 }
 
@@ -1348,7 +1348,7 @@ impl GrayImage {
 // TODO: Equality constraints are not yet supported in where clauses, when they
 // are, the T parameter should be removed in favor of ToType::Subpixel, which
 // will then be FromType::Subpixel.
-impl<'a, 'b, Container, FromType: Pixel, ToType: Pixel>
+impl<Container, FromType: Pixel, ToType: Pixel>
     ConvertBuffer<ImageBuffer<ToType, Vec<ToType::Subpixel>>> for ImageBuffer<FromType, Container>
 where
     Container: Deref<Target = [FromType::Subpixel]>,

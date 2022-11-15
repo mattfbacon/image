@@ -138,8 +138,8 @@ impl HuffmanTree {
         let mut num_symbols = 0;
         let mut root_symbol = 0;
 
-        for symbol in 0..code_lengths.len() {
-            if code_lengths[symbol] > 0 {
+        for (symbol, code_length) in code_lengths.iter().copied().enumerate() {
+            if code_length > 0 {
                 num_symbols += 1;
                 root_symbol = symbol.try_into().unwrap();
             }

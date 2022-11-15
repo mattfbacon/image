@@ -1259,7 +1259,7 @@ impl<R: Read> Vp8Decoder<R> {
 
             self.top = init_top_macroblocks(self.frame.width as usize);
             // Almost always the first macro block, except when non exists (i.e. `width == 0`)
-            self.left = self.top.get(0).cloned().unwrap_or_else(MacroBlock::default);
+            self.left = self.top.get(0).cloned().unwrap_or_default();
 
             self.mbwidth = (self.frame.width + 15) / 16;
             self.mbheight = (self.frame.height + 15) / 16;
@@ -1583,7 +1583,7 @@ impl<R: Read> Vp8Decoder<R> {
         dcq: i16,
         acq: i16,
     ) -> bool {
-        let first = if plane == 0 { 1usize } else { 0usize };
+        let first = usize::from(plane == 0);
         let probs = &self.token_probs[plane];
         let tree = &DCT_TOKEN_TREE;
 
@@ -1664,8 +1664,8 @@ impl<R: Read> Vp8Decoder<R> {
             let acq = self.segment[sindex].y2ac;
             let n = self.read_coefficients(&mut block, p, plane, complexity as usize, dcq, acq);
 
-            self.left.complexity[0] = if n { 1 } else { 0 };
-            self.top[mbx].complexity[0] = if n { 1 } else { 0 };
+            self.left.complexity[0] = n.into();
+            self.top[mbx].complexity[0] = n.into();
 
             transform::iwht4x4(&mut block);
 
@@ -1692,8 +1692,8 @@ impl<R: Read> Vp8Decoder<R> {
                     transform::idct4x4(block);
                 }
 
-                left = if n { 1 } else { 0 };
-                self.top[mbx].complexity[x + 1] = if n { 1 } else { 0 };
+                left = n.into();
+                self.top[mbx].complexity[x + 1] = n.into();
             }
 
             self.left.complexity[y + 1] = left;
@@ -1701,7 +1701,7 @@ impl<R: Read> Vp8Decoder<R> {
 
         plane = 2;
 
-        for &j in &[5usize, 7usize] {
+        for j in [5usize, 7usize] {
             for y in 0usize..2 {
                 let mut left = self.left.complexity[y + j];
 
@@ -1718,8 +1718,8 @@ impl<R: Read> Vp8Decoder<R> {
                         transform::idct4x4(block);
                     }
 
-                    left = if n { 1 } else { 0 };
-                    self.top[mbx].complexity[x + j] = if n { 1 } else { 0 };
+                    left = n.into();
+                    self.top[mbx].complexity[x + j] = n.into();
                 }
 
                 self.left.complexity[y + j] = left;
@@ -2039,14 +2039,12 @@ impl<R: Read> Vp8Decoder<R> {
             } else {
                 hev_threshold = 1;
             }
-        } else {
-            if filter_level >= 40 {
-                hev_threshold = 3;
-            } else if filter_level >= 20 {
-                hev_threshold = 2;
-            } else if filter_level >= 15 {
-                hev_threshold = 1;
-            }
+        } else if filter_level >= 40 {
+            hev_threshold = 3;
+        } else if filter_level >= 20 {
+            hev_threshold = 2;
+        } else if filter_level >= 15 {
+            hev_threshold = 1;
         }
 
         (filter_level, interior_limit, hev_threshold)
