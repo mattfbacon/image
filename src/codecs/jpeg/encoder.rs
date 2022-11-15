@@ -1,7 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
 use std::borrow::Cow;
-use std::convert::TryFrom;
 use std::io::{self, Write};
 
 use super::entropy::build_huff_lut_const;

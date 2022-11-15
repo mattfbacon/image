@@ -20,7 +20,6 @@
 //!     - meta data is lost
 //!     - dwaa/dwab compressed images not supported yet by the exr library
 //!     - (chroma) subsampling not supported yet by the exr library
-use std::convert::TryInto;
 use std::io::{Cursor, Read, Seek, Write};
 
 use exr::prelude::*;

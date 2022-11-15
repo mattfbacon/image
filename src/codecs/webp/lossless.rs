@@ -2,7 +2,6 @@
 //!
 //! [Lossless spec](https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification)
 
-use std::convert::{TryFrom, TryInto};
 use std::io::Read;
 use std::ops::{AddAssign, Shl};
 use std::{error, fmt};

@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use super::lossless::{BitReader, DecoderError};
 use crate::ImageResult;
 

@@ -5,7 +5,6 @@
 //! # Related Links
 //! * <http://www.w3.org/TR/PNG/> - The PNG Specification
 
-use std::convert::TryFrom;
 use std::fmt;
 use std::io::{self, Read, Write};
 

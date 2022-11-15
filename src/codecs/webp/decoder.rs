@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::io::{self, Cursor, Error, Read};
 use std::marker::PhantomData;
 use std::{error, fmt, mem};
