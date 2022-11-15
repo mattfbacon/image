@@ -879,25 +879,25 @@ mod tests {
 
     #[test]
     fn test_blend_luma_alpha() {
-        let a = &mut LumaA([255_u8, 255]);
+        let mut a = LumaA([255_u8, 255]);
         let b = LumaA([255_u8, 255]);
         a.blend(&b);
         assert_eq!(a.0[0], 255);
         assert_eq!(a.0[1], 255);
 
-        let a = &mut LumaA([255_u8, 0]);
+        let mut a = LumaA([255_u8, 0]);
         let b = LumaA([255_u8, 255]);
         a.blend(&b);
         assert_eq!(a.0[0], 255);
         assert_eq!(a.0[1], 255);
 
-        let a = &mut LumaA([255_u8, 255]);
+        let mut a = LumaA([255_u8, 255]);
         let b = LumaA([255_u8, 0]);
         a.blend(&b);
         assert_eq!(a.0[0], 255);
         assert_eq!(a.0[1], 255);
 
-        let a = &mut LumaA([255_u8, 0]);
+        let mut a = LumaA([255_u8, 0]);
         let b = LumaA([255_u8, 0]);
         a.blend(&b);
         assert_eq!(a.0[0], 255);
@@ -906,22 +906,22 @@ mod tests {
 
     #[test]
     fn test_blend_rgba() {
-        let a = &mut Rgba([255_u8, 255, 255, 255]);
+        let mut a = Rgba([255_u8, 255, 255, 255]);
         let b = Rgba([255_u8, 255, 255, 255]);
         a.blend(&b);
         assert_eq!(a.0, [255, 255, 255, 255]);
 
-        let a = &mut Rgba([255_u8, 255, 255, 0]);
+        let mut a = Rgba([255_u8, 255, 255, 0]);
         let b = Rgba([255_u8, 255, 255, 255]);
         a.blend(&b);
         assert_eq!(a.0, [255, 255, 255, 255]);
 
-        let a = &mut Rgba([255_u8, 255, 255, 255]);
+        let mut a = Rgba([255_u8, 255, 255, 255]);
         let b = Rgba([255_u8, 255, 255, 0]);
         a.blend(&b);
         assert_eq!(a.0, [255, 255, 255, 255]);
 
-        let a = &mut Rgba([255_u8, 255, 255, 0]);
+        let mut a = Rgba([255_u8, 255, 255, 0]);
         let b = Rgba([255_u8, 255, 255, 0]);
         a.blend(&b);
         assert_eq!(a.0, [255, 255, 255, 0]);

@@ -461,10 +461,9 @@ mod test {
         #[cfg(feature = "hdr")]
         {
             let folder = BASE_PATH.iter().collect::<PathBuf>();
-            let reference_path = folder.clone().join("overexposed gradient.hdr");
-            let exr_path = folder
-                .clone()
-                .join("overexposed gradient - data window equals display window.exr");
+            let reference_path = folder.join("overexposed gradient.hdr");
+            let exr_path =
+                folder.join("overexposed gradient - data window equals display window.exr");
 
             let hdr: Vec<Rgb<f32>> = crate::codecs::hdr::HdrDecoder::new(std::io::BufReader::new(
                 std::fs::File::open(&reference_path).unwrap(),

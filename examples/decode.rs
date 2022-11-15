@@ -1,6 +1,5 @@
 //! An example of opening an image.
 use std::env;
-use std::path::Path;
 
 fn main() {
     let from = if env::args_os().count() == 2 {
@@ -12,6 +11,6 @@ fn main() {
 
     // Use the open function to load an image from a Path.
     // ```open``` returns a dynamic image.
-    let im = image::open(Path::new(&from)).unwrap();
+    let im = image::open(&from).unwrap();
     println!("{}", im.as_bytes().len());
 }

@@ -408,11 +408,7 @@ impl ColorMap for BiLevel {
     #[inline(always)]
     fn index_of(&self, color: &Luma<u8>) -> usize {
         let luma = color.0;
-        if luma[0] > 127 {
-            1
-        } else {
-            0
-        }
+        (luma[0] > 127).into()
     }
 
     #[inline(always)]
@@ -590,45 +586,37 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_grayscale() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![0u8, 1u8, 2u8, 10u8, 11u8, 12u8]).unwrap();
-
-        let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![0u8, 1u8, 2u8, 10u8, 11u8, 12u8]).unwrap();
-
+        let image = GrayImage::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
+        let expected = GrayImage::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
         assert_pixels_eq!(&grayscale(&image), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_invert() {
-        let mut image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![0u8, 1u8, 2u8, 10u8, 11u8, 12u8]).unwrap();
-
-        let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![255u8, 254u8, 253u8, 245u8, 244u8, 243u8]).unwrap();
+        let mut image = GrayImage::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
+        let expected = GrayImage::from_raw(3, 2, vec![255, 254, 253, 245, 244, 243]).unwrap();
 
         invert(&mut image);
         assert_pixels_eq!(&image, &expected);
     }
-    #[test]
-    fn test_brighten() {
-        let image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![0u8, 1u8, 2u8, 10u8, 11u8, 12u8]).unwrap();
 
-        let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![10u8, 11u8, 12u8, 20u8, 21u8, 22u8]).unwrap();
+    #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
+    fn test_brighten() {
+        let image = GrayImage::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
+        let expected = GrayImage::from_raw(3, 2, vec![10, 11, 12, 20, 21, 22]).unwrap();
 
         assert_pixels_eq!(&brighten(&image, 10), &expected);
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_brighten_place() {
-        let mut image: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![0u8, 1u8, 2u8, 10u8, 11u8, 12u8]).unwrap();
-
-        let expected: GrayImage =
-            ImageBuffer::from_raw(3, 2, vec![10u8, 11u8, 12u8, 20u8, 21u8, 22u8]).unwrap();
+        let mut image = GrayImage::from_raw(3, 2, vec![00, 01, 02, 10, 11, 12]).unwrap();
+        let expected = GrayImage::from_raw(3, 2, vec![10, 11, 12, 20, 21, 22]).unwrap();
 
         brighten_in_place(&mut image, 10);
         assert_pixels_eq!(&image, &expected);

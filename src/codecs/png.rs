@@ -752,23 +752,25 @@ mod tests {
         )
         .expect("Unable to read PNG file (does it exist?)");
 
-        assert_eq![(2000, 1000), dec.dimensions()];
+        assert_eq!(dec.dimensions(), (2000, 1000));
 
-        assert_eq![
-            ColorType::Rgb8,
+        assert_eq!(
             dec.color_type(),
+            ColorType::Rgb8,
             "Image MUST have the Rgb8 format"
-        ];
+        );
 
         #[allow(deprecated)]
         let correct_bytes = dec
             .into_reader()
             .expect("Unable to read file")
             .bytes()
-            .map(|x| x.expect("Unable to read byte"))
-            .collect::<Vec<u8>>();
+            .inspect(|byte| {
+                byte.as_ref().expect("Unable to read byte");
+            })
+            .count();
 
-        assert_eq![6_000_000, correct_bytes.len()];
+        assert_eq!(correct_bytes, 6_000_000);
     }
 
     #[test]

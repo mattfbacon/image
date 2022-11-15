@@ -183,51 +183,6 @@ impl ImageFormat {
         }
     }
 
-    /// Return the MIME type for this image format or "application/octet-stream" if no MIME type
-    /// exists for the format.
-    ///
-    /// Some notes on a few of the MIME types:
-    ///
-    /// - The portable anymap format has a separate MIME type for the pixmap, graymap and bitmap
-    ///   formats, but this method returns the general "image/x-portable-anymap" MIME type.
-    /// - The Targa format has two common MIME types, "image/x-targa"  and "image/x-tga"; this
-    ///   method returns "image/x-targa" for that format.
-    /// - The QOI MIME type is still a work in progress. This method returns "image/x-qoi" for
-    ///   that format.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use image::ImageFormat;
-    ///
-    /// let mime_type = ImageFormat::Png.to_mime_type();
-    /// assert_eq!(mime_type, "image/png");
-    /// ```
-    pub fn to_mime_type(&self) -> &'static str {
-        match self {
-            ImageFormat::Avif => "image/avif",
-            ImageFormat::Jpeg => "image/jpeg",
-            ImageFormat::Png => "image/png",
-            ImageFormat::Gif => "image/gif",
-            ImageFormat::WebP => "image/webp",
-            ImageFormat::Tiff => "image/tiff",
-            // the targa MIME type has two options, but this one seems to be used more
-            ImageFormat::Tga => "image/x-targa",
-            ImageFormat::Dds => "image/vnd-ms.dds",
-            ImageFormat::Bmp => "image/bmp",
-            ImageFormat::Ico => "image/x-icon",
-            ImageFormat::Hdr => "image/vnd.radiance",
-            ImageFormat::OpenExr => "image/x-exr",
-            // return the most general MIME type
-            ImageFormat::Pnm => "image/x-portable-anymap",
-            // Qoi's MIME type is being worked on.
-            // See: https://github.com/phoboslab/qoi/issues/167
-            ImageFormat::Qoi => "image/x-qoi",
-            // farbfield's MIME type taken from https://www.wikidata.org/wiki/Q28206109
-            ImageFormat::Farbfeld => "application/octet-stream",
-        }
-    }
-
     /// Return if the ImageFormat can be decoded by the lib.
     #[inline]
     pub fn can_read(&self) -> bool {
@@ -303,73 +258,6 @@ impl ImageFormat {
             ImageFormat::Qoi => &["qoi"],
         }
     }
-
-    /// Return the ImageFormats which are enabled for reading.
-    #[inline]
-    pub fn reading_enabled(&self) -> bool {
-        match self {
-            ImageFormat::Png => cfg!(feature = "png"),
-            ImageFormat::Gif => cfg!(feature = "gif"),
-            ImageFormat::Jpeg => cfg!(feature = "jpeg"),
-            ImageFormat::WebP => cfg!(feature = "webp"),
-            ImageFormat::Tiff => cfg!(feature = "tiff"),
-            ImageFormat::Tga => cfg!(feature = "tga"),
-            ImageFormat::Bmp => cfg!(feature = "bmp"),
-            ImageFormat::Ico => cfg!(feature = "ico"),
-            ImageFormat::Hdr => cfg!(feature = "hdr"),
-            ImageFormat::OpenExr => cfg!(feature = "openexr"),
-            ImageFormat::Pnm => cfg!(feature = "pnm"),
-            ImageFormat::Farbfeld => cfg!(feature = "farbfeld"),
-            ImageFormat::Avif => cfg!(feature = "avif"),
-            ImageFormat::Qoi => cfg!(feature = "qoi"),
-            ImageFormat::Dds => false,
-        }
-    }
-
-    /// Return the ImageFormats which are enabled for writing.
-    #[inline]
-    pub fn writing_enabled(&self) -> bool {
-        match self {
-            ImageFormat::Gif => cfg!(feature = "gif"),
-            ImageFormat::Ico => cfg!(feature = "ico"),
-            ImageFormat::Jpeg => cfg!(feature = "jpeg"),
-            ImageFormat::Png => cfg!(feature = "png"),
-            ImageFormat::Bmp => cfg!(feature = "bmp"),
-            ImageFormat::Tiff => cfg!(feature = "tiff"),
-            ImageFormat::Tga => cfg!(feature = "tga"),
-            ImageFormat::Pnm => cfg!(feature = "pnm"),
-            ImageFormat::Farbfeld => cfg!(feature = "farbfeld"),
-            ImageFormat::Avif => cfg!(feature = "avif"),
-            ImageFormat::WebP => cfg!(feature = "webp"),
-            ImageFormat::OpenExr => cfg!(feature = "openexr"),
-            ImageFormat::Qoi => cfg!(feature = "qoi"),
-            ImageFormat::Dds => false,
-            ImageFormat::Hdr => false,
-        }
-    }
-
-    /// Return all ImageFormats
-    pub fn all() -> impl Iterator<Item = ImageFormat> {
-        [
-            ImageFormat::Gif,
-            ImageFormat::Ico,
-            ImageFormat::Jpeg,
-            ImageFormat::Png,
-            ImageFormat::Bmp,
-            ImageFormat::Tiff,
-            ImageFormat::Tga,
-            ImageFormat::Pnm,
-            ImageFormat::Farbfeld,
-            ImageFormat::Avif,
-            ImageFormat::WebP,
-            ImageFormat::OpenExr,
-            ImageFormat::Qoi,
-            ImageFormat::Dds,
-            ImageFormat::Hdr,
-        ]
-        .iter()
-        .copied()
-    }
 }
 
 /// An enumeration of supported image formats for encoding.
@@ -381,7 +269,7 @@ pub enum ImageOutputFormat {
     Png,
 
     #[cfg(feature = "jpeg")]
-    /// An Image in JPEG Format with specified quality, up to 100
+    /// An Image in JPEG Format with specified quality
     Jpeg(u8),
 
     #[cfg(feature = "pnm")]
@@ -420,13 +308,13 @@ pub enum ImageOutputFormat {
     /// An image in AVIF Format
     Avif,
 
+    #[cfg(feature = "webp-encoder")]
+    /// An image in WebP Format.
+    WebP,
+
     #[cfg(feature = "qoi")]
     /// An image in QOI Format
     Qoi,
-
-    #[cfg(feature = "webp")]
-    /// An image in WebP Format.
-    WebP,
 
     /// A value for signalling an error: An unsupported format was requested
     // Note: When TryFrom is stabilized, this value should not be needed, and
@@ -457,12 +345,10 @@ impl From<ImageFormat> for ImageOutputFormat {
             ImageFormat::OpenExr => ImageOutputFormat::OpenExr,
             #[cfg(feature = "tiff")]
             ImageFormat::Tiff => ImageOutputFormat::Tiff,
-
             #[cfg(feature = "avif-encoder")]
             ImageFormat::Avif => ImageOutputFormat::Avif,
-            #[cfg(feature = "webp")]
+            #[cfg(feature = "webp-encoder")]
             ImageFormat::WebP => ImageOutputFormat::WebP,
-
             #[cfg(feature = "qoi")]
             ImageFormat::Qoi => ImageOutputFormat::Qoi,
 
@@ -577,7 +463,6 @@ where
     let dimensions = decoder.dimensions();
     let bytes_per_pixel = u64::from(decoder.color_type().bytes_per_pixel());
     let row_bytes = bytes_per_pixel * u64::from(dimensions.0);
-    #[allow(deprecated)]
     let scanline_bytes = decoder.scanline_bytes();
     let total_bytes = width * height * bytes_per_pixel;
 
@@ -769,18 +654,9 @@ pub trait ImageDecoder<'a>: Sized {
         self.color_type().into()
     }
 
-    /// Returns the ICC color profile embedded in the image
-    ///
-    /// For formats that don't support embedded profiles this function will always return `None`.
-    /// This feature is currently only supported for the JPEG, PNG, and AVIF formats.
-    fn icc_profile(&mut self) -> Option<Vec<u8>> {
-        None
-    }
-
     /// Returns a reader that can be used to obtain the bytes of the image. For the best
     /// performance, always try to read at least `scanline_bytes` from the reader at a time. Reading
     /// fewer bytes will cause the reader to perform internal buffering.
-    #[deprecated = "Planned for removal. See https://github.com/image-rs/image/issues/1989"]
     fn into_reader(self) -> ImageResult<Self::Reader>;
 
     /// Returns the total number of bytes in the decoded image.
@@ -798,7 +674,6 @@ pub trait ImageDecoder<'a>: Sized {
 
     /// Returns the minimum number of bytes that can be efficiently read from this decoder. This may
     /// be as few as 1 or as many as `total_bytes()`.
-    #[deprecated = "Planned for removal. See https://github.com/image-rs/image/issues/1989"]
     fn scanline_bytes(&self) -> u64 {
         self.total_bytes()
     }
@@ -825,13 +700,11 @@ pub trait ImageDecoder<'a>: Sized {
     /// }
     /// ```
     fn read_image(self, buf: &mut [u8]) -> ImageResult<()> {
-        #[allow(deprecated)]
         self.read_image_with_progress(buf, |_| {})
     }
 
     /// Same as `read_image` but periodically calls the provided callback to give updates on loading
     /// progress.
-    #[deprecated = "Use read_image instead. See https://github.com/image-rs/image/issues/1989"]
     fn read_image_with_progress<F: Fn(Progress)>(
         self,
         buf: &mut [u8],
@@ -840,7 +713,6 @@ pub trait ImageDecoder<'a>: Sized {
         assert_eq!(u64::try_from(buf.len()), Ok(self.total_bytes()));
 
         let total_bytes = self.total_bytes() as usize;
-        #[allow(deprecated)]
         let scanline_bytes = self.scanline_bytes() as usize;
         let target_read_size = if scanline_bytes < 4096 {
             (4096 / scanline_bytes) * scanline_bytes
@@ -848,7 +720,6 @@ pub trait ImageDecoder<'a>: Sized {
             scanline_bytes
         };
 
-        #[allow(deprecated)]
         let mut reader = self.into_reader()?;
 
         let mut bytes_read = 0;
@@ -898,7 +769,6 @@ pub trait ImageDecoderRect<'a>: ImageDecoder<'a> + Sized {
         height: u32,
         buf: &mut [u8],
     ) -> ImageResult<()> {
-        #[allow(deprecated)]
         self.read_rect_with_progress(x, y, width, height, buf, |_| {})
     }
 
@@ -914,7 +784,6 @@ pub trait ImageDecoderRect<'a>: ImageDecoder<'a> + Sized {
     ///
     /// This function will panic if the output buffer isn't at least
     /// `color_type().bytes_per_pixel() * color_type().channel_count() * width * height` bytes long.
-    #[deprecated = "Use read_image instead. See https://github.com/image-rs/image/issues/1989"]
     fn read_rect_with_progress<F: Fn(Progress)>(
         &mut self,
         x: u32,
@@ -944,10 +813,6 @@ pub trait ImageEncoder {
     ///
     /// See also `ImageDecoder::read_image` which reads byte buffers into
     /// native endian.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `width * height * color_type.bytes_per_pixel() != buf.len()`.
     fn write_image(
         self,
         buf: &[u8],
@@ -1023,12 +888,10 @@ pub trait GenericImageView {
     }
 
     /// The bounding rectangle of this image.
-    #[deprecated = "This method has inconsistent behavior between implementations (#1829). Use `dimensions` instead"]
     fn bounds(&self) -> (u32, u32, u32, u32);
 
     /// Returns true if this x, y coordinate is contained inside the image.
     fn in_bounds(&self, x: u32, y: u32) -> bool {
-        #[allow(deprecated)]
         let (ix, iy, iw, ih) = self.bounds();
         x >= ix && x < ix + iw && y >= iy && y < iy + ih
     }
@@ -1346,8 +1209,8 @@ where
         use crate::GenericImageView as _;
         assert!(x as u64 + width as u64 <= self.inner.width() as u64);
         assert!(y as u64 + height as u64 <= self.inner.height() as u64);
-        let x = self.inner.xoffset.saturating_add(x);
-        let y = self.inner.yoffset.saturating_add(y);
+        let x = self.inner.xoffset + x;
+        let y = self.inner.yoffset + y;
         SubImage::new(&*self.inner.image, x, y, width, height)
     }
 
@@ -1374,8 +1237,8 @@ where
     ) -> SubImage<&mut I::Target> {
         assert!(x as u64 + width as u64 <= self.inner.width() as u64);
         assert!(y as u64 + height as u64 <= self.inner.height() as u64);
-        let x = self.inner.xoffset.saturating_add(x);
-        let y = self.inner.yoffset.saturating_add(y);
+        let x = self.inner.xoffset + x;
+        let y = self.inner.yoffset + y;
         SubImage::new(&mut *self.inner.image, x, y, width, height)
     }
 
@@ -1449,7 +1312,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
     use std::io;
     use std::path::Path;
 
@@ -1583,7 +1445,6 @@ mod tests {
     fn test_copy_sub_image() {
         let source = ImageBuffer::from_pixel(3, 3, Rgba([255u8, 0, 0, 255]));
         let view = source.view(0, 0, 3, 3);
-        let _view2 = view;
         view.to_image();
     }
 
@@ -1865,9 +1726,14 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_tl() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [0, 1, 2, 3, 4, 0, 1, 2, 8, 4, 5, 6, 12, 8, 9, 10];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            00, 01, 02, 03, 04, 00, 01, 02, 08, 04, 05, 06, 12, 08, 09, 10,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.sub_image(0, 0, 4, 4).copy_within(
             Rect {
@@ -1883,9 +1749,14 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_tr() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [0, 1, 2, 3, 1, 2, 3, 7, 5, 6, 7, 11, 9, 10, 11, 15];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            00, 01, 02, 03, 01, 02, 03, 07, 05, 06, 07, 11, 09, 10, 11, 15,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.sub_image(0, 0, 4, 4).copy_within(
             Rect {
@@ -1901,9 +1772,14 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_bl() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [0, 4, 5, 6, 4, 8, 9, 10, 8, 12, 13, 14, 12, 13, 14, 15];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            00, 04, 05, 06, 04, 08, 09, 10, 08, 12, 13, 14, 12, 13, 14, 15,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.sub_image(0, 0, 4, 4).copy_within(
             Rect {
@@ -1919,9 +1795,14 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_generic_image_copy_within_br() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [5, 6, 7, 3, 9, 10, 11, 7, 13, 14, 15, 11, 12, 13, 14, 15];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            05, 06, 07, 03, 09, 10, 11, 07, 13, 14, 15, 11, 12, 13, 14, 15,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.sub_image(0, 0, 4, 4).copy_within(
             Rect {
@@ -1973,28 +1854,5 @@ mod tests {
 
         let v: ImageResult<Vec<u8>> = super::decoder_to_vec(D);
         assert!(v.is_err());
-    }
-
-    #[test]
-    fn all() {
-        let all_formats: HashSet<ImageFormat> = HashSet::from_iter(ImageFormat::all());
-        assert!(all_formats.contains(&ImageFormat::Avif));
-        assert!(all_formats.contains(&ImageFormat::Gif));
-        assert!(all_formats.contains(&ImageFormat::Bmp));
-        assert!(all_formats.contains(&ImageFormat::Farbfeld));
-        assert!(all_formats.contains(&ImageFormat::Jpeg));
-    }
-
-    #[test]
-    fn reading_enabled() {
-        assert_eq!(cfg!(feature = "jpeg"), ImageFormat::Jpeg.reading_enabled());
-        assert!(!ImageFormat::Dds.reading_enabled());
-    }
-
-    #[test]
-    fn writing_enabled() {
-        assert_eq!(cfg!(feature = "jpeg"), ImageFormat::Jpeg.writing_enabled());
-        assert!(!ImageFormat::Hdr.writing_enabled());
-        assert!(!ImageFormat::Dds.writing_enabled());
     }
 }

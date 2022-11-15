@@ -440,10 +440,6 @@ impl<W: Write> JpegEncoder<W> {
     /// and ```ColorType``` ```c```
     ///
     /// The Image in encoded with subsampling ratio 4:2:2
-    ///
-    /// # Panics
-    ///
-    /// Panics if `width * height * color_type.bytes_per_pixel() != image.len()`.
     pub fn encode(
         &mut self,
         image: &[u8],
@@ -451,11 +447,6 @@ impl<W: Write> JpegEncoder<W> {
         height: u32,
         color_type: ColorType,
     ) -> ImageResult<()> {
-        assert_eq!(
-            (width as u64 * height as u64).saturating_mul(color_type.bytes_per_pixel() as u64),
-            image.len() as u64
-        );
-
         match color_type {
             ColorType::L8 => {
                 let image: ImageBuffer<Luma<_>, _> =
@@ -765,7 +756,7 @@ fn build_quantization_segment(m: &mut Vec<u8>, precision: u8, identifier: u8, qt
 }
 
 fn encode_coefficient(coefficient: i32) -> (u8, u16) {
-    let mut magnitude = coefficient.unsigned_abs() as u16;
+    let mut magnitude = coefficient.unsigned_abs();
     let mut num_bits = 0u8;
 
     while magnitude > 0 {
@@ -965,14 +956,10 @@ mod tests {
         let result = encoder.write_image(&img, 65_536, 1, ColorType::L8);
         match result {
             Err(ImageError::Parameter(err)) => {
-                assert_eq!(err.kind(), DimensionMismatch)
+                assert_eq!(err.kind(), DimensionMismatch);
             }
             other => {
-                panic!(
-                    "Encoding an image that is too large should return a DimensionError \
-                                it returned {:?} instead",
-                    other
-                )
+                panic!("Encoding an image that is too large should return a DimensionError. it returned {:?} instead", other);
             }
         }
     }
@@ -1070,7 +1057,8 @@ mod tests {
         let qtable = [0u8; 64];
         build_quantization_segment(&mut buf, 8, 1, &qtable);
         let mut expected = vec![];
-        expected.push(1);
+        #[allow(clippy::identity_op)] // clarity
+        expected.push(0 << 4 | 1);
         expected.extend_from_slice(&[0; 64]);
         assert_eq!(buf, expected)
     }
@@ -1080,7 +1068,7 @@ mod tests {
     fn bench_jpeg_encoder_new(b: &mut Bencher) {
         b.iter(|| {
             let mut y = vec![];
-            let _x = JpegEncoder::new(&mut y);
+            let x = JpegEncoder::new(&mut y);
         })
     }
 }

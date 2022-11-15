@@ -1429,7 +1429,9 @@ mod test {
     #[test]
     fn get_pixel_checked() {
         let mut a: RgbImage = ImageBuffer::new(10, 10);
-        a.get_pixel_mut_checked(0, 1).map(|b| b[0] = 255);
+        if let Some(pixel) = a.get_pixel_mut_checked(0, 1) {
+            pixel[0] = 255;
+        }
 
         assert_eq!(a.get_pixel_checked(0, 1), Some(&Rgb([255, 0, 0])));
         assert_eq!(a.get_pixel_checked(0, 1).unwrap(), a.get_pixel(0, 1));
@@ -1520,6 +1522,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_image_buffer_copy_within_tl() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1542,6 +1545,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_image_buffer_copy_within_tr() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1564,6 +1568,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_image_buffer_copy_within_bl() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
@@ -1586,6 +1591,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::zero_prefixed_literal)] // alignment
     fn test_image_buffer_copy_within_br() {
         let data = &[
             00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
