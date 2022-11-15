@@ -10,21 +10,19 @@
 //! * [rfc-6386](http://tools.ietf.org/html/rfc6386) - The VP8 Data Format and Decoding Guide
 //! * [VP8.pdf](http://static.googleusercontent.com/media/research.google.com/en//pubs/archive/37073.pdf) - An overview of
 //! of the VP8 format
-//!
 
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::convert::TryInto;
 use std::default::Default;
 use std::io::Read;
 use std::{cmp, error, fmt};
 
-use super::loop_filter;
-use super::transform;
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use super::{loop_filter, transform};
 use crate::error::{
     DecodingError, ImageError, ImageResult, UnsupportedError, UnsupportedErrorKind,
 };
 use crate::image::ImageFormat;
-
 use crate::utils::clamp;
 
 const MAX_SEGMENTS: usize = 4;
@@ -2582,14 +2580,15 @@ mod test {
 
     #[cfg(feature = "benchmarks")]
     extern crate test;
+    #[cfg(feature = "benchmarks")]
+    use test::{black_box, Bencher};
+
     use super::{
         add_residue, avg2, avg3, edge_pixels, predict_bhepred, predict_bldpred, predict_brdpred,
         predict_bvepred, top_pixels,
     };
     #[cfg(feature = "benchmarks")]
     use super::{predict_4x4, IntraMode};
-    #[cfg(feature = "benchmarks")]
-    use test::{black_box, Bencher};
 
     #[cfg(feature = "benchmarks")]
     const W: usize = 256;

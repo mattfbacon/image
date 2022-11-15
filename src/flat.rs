@@ -7,40 +7,38 @@
 //! to help you transition from raw memory data to Rust representation.
 //!
 //! ```no_run
-//! use std::ptr;
-//! use std::slice;
-//! use image::Rgb;
+//! use std::{ptr, slice};
+//!
 //! use image::flat::{FlatSamples, SampleLayout};
 //! use image::imageops::thumbnail;
+//! use image::Rgb;
 //!
 //! #[no_mangle]
 //! pub extern "C" fn store_rgb8_compressed(
-//!     data: *const u8, len: usize,
-//!     layout: *const SampleLayout
-//! )
-//!     -> bool
-//! {
-//!     let samples = unsafe { slice::from_raw_parts(data, len) };
-//!     let layout = unsafe { ptr::read(layout) };
+//! 	data: *const u8,
+//! 	len: usize,
+//! 	layout: *const SampleLayout,
+//! ) -> bool {
+//! 	let samples = unsafe { slice::from_raw_parts(data, len) };
+//! 	let layout = unsafe { ptr::read(layout) };
 //!
-//!     let buffer = FlatSamples {
-//!         samples,
-//!         layout,
-//!         color_hint: None,
-//!     };
+//! 	let buffer = FlatSamples {
+//! 		samples,
+//! 		layout,
+//! 		color_hint: None,
+//! 	};
 //!
-//!     let view = match buffer.as_view::<Rgb<u8>>() {
-//!         Err(_) => return false, // Invalid layout.
-//!         Ok(view) => view,
-//!     };
+//! 	let view = match buffer.as_view::<Rgb<u8>>() {
+//! 		Err(_) => return false, // Invalid layout.
+//! 		Ok(view) => view,
+//! 	};
 //!
-//!     thumbnail(&view, 64, 64)
-//!         .save("output.png")
-//!         .map(|_| true)
-//!         .unwrap_or_else(|_| false)
+//! 	thumbnail(&view, 64, 64)
+//! 		.save("output.png")
+//! 		.map(|_| true)
+//! 		.unwrap_or_else(|_| false)
 //! }
 //! ```
-//!
 use std::marker::PhantomData;
 use std::ops::{Deref, Index, IndexMut};
 use std::{cmp, error, fmt};
@@ -920,10 +918,11 @@ impl<'buf, Subpixel> FlatSamples<&'buf [Subpixel]> {
     ///
     /// ```
     /// # fn paint_something<T>(_: T) {}
-    /// use image::{flat::FlatSamples, GenericImage, RgbImage, Rgb};
+    /// use image::flat::FlatSamples;
+    /// use image::{GenericImage, Rgb, RgbImage};
     ///
     /// let background = Rgb([20, 20, 20]);
-    /// let bg = FlatSamples::with_monocolor(&background, 200, 200);;
+    /// let bg = FlatSamples::with_monocolor(&background, 200, 200);
     ///
     /// let mut image = RgbImage::new(200, 200);
     /// paint_something(&mut image);
@@ -966,7 +965,6 @@ impl<'buf, Subpixel> FlatSamples<&'buf [Subpixel]> {
 ///
 /// * For all indices inside bounds, the corresponding index is valid in the buffer
 /// * `P::channel_count()` agrees with `self.inner.layout.channels`
-///
 #[derive(Clone, Debug)]
 pub struct View<Buffer, P: Pixel>
 where
@@ -989,7 +987,6 @@ where
 /// * There is no aliasing of samples
 /// * The samples are packed, i.e. `self.inner.layout.sample_stride == 1`
 /// * `P::channel_count()` agrees with `self.inner.layout.channels`
-///
 #[derive(Clone, Debug)]
 pub struct ViewMut<Buffer, P: Pixel>
 where

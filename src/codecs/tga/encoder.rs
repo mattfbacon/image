@@ -1,6 +1,10 @@
+use std::convert::TryFrom;
+use std::io::Write;
+use std::{error, fmt};
+
 use super::header::Header;
-use crate::{error::EncodingError, ColorType, ImageEncoder, ImageError, ImageFormat, ImageResult};
-use std::{convert::TryFrom, error, fmt, io::Write};
+use crate::error::EncodingError;
+use crate::{ColorType, ImageEncoder, ImageError, ImageFormat, ImageResult};
 
 /// Errors that can occur during encoding and saving of a TGA image.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -99,9 +103,12 @@ impl<W: Write> ImageEncoder for TgaEncoder<W> {
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+    use std::io::Cursor;
+
     use super::{EncoderError, TgaEncoder};
-    use crate::{codecs::tga::TgaDecoder, ColorType, ImageDecoder, ImageError};
-    use std::{error::Error, io::Cursor};
+    use crate::codecs::tga::TgaDecoder;
+    use crate::{ColorType, ImageDecoder, ImageError};
 
     fn round_trip_image(image: &[u8], width: u32, height: u32, c: ColorType) -> Vec<u8> {
         let mut encoded_data = Vec::new();

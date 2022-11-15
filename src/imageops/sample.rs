@@ -866,10 +866,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{resize, FilterType};
-    use crate::{GenericImageView, ImageBuffer, RgbImage};
     #[cfg(feature = "benchmarks")]
     use test;
+
+    use super::{resize, FilterType};
+    use crate::{GenericImageView, ImageBuffer, RgbImage};
 
     #[bench]
     #[cfg(all(feature = "benchmarks", feature = "png"))]

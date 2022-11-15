@@ -7,9 +7,7 @@
 ///
 /// Currently this decoder does not support 8, 15 and 16 bit color images.
 pub use self::decoder::TgaDecoder;
-
 //TODO add 8, 15, 16 bit color support
-
 pub use self::encoder::TgaEncoder;
 
 mod decoder;

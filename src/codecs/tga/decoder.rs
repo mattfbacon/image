@@ -1,17 +1,15 @@
-use super::header::{Header, ImageType, ALPHA_BIT_MASK, SCREEN_ORIGIN_BIT_MASK};
-use crate::{
-    color::{ColorType, ExtendedColorType},
-    error::{
-        ImageError, ImageResult, LimitError, LimitErrorKind, UnsupportedError, UnsupportedErrorKind,
-    },
-    image::{ImageDecoder, ImageFormat, ImageReadBuffer},
-};
+use std::convert::TryFrom;
+use std::io::{self, Read, Seek};
+use std::mem;
+
 use byteorder::ReadBytesExt;
-use std::{
-    convert::TryFrom,
-    io::{self, Read, Seek},
-    mem,
+
+use super::header::{Header, ImageType, ALPHA_BIT_MASK, SCREEN_ORIGIN_BIT_MASK};
+use crate::color::{ColorType, ExtendedColorType};
+use crate::error::{
+    ImageError, ImageResult, LimitError, LimitErrorKind, UnsupportedError, UnsupportedErrorKind,
 };
+use crate::image::{ImageDecoder, ImageFormat, ImageReadBuffer};
 
 struct ColorMap {
     /// sizes in bytes

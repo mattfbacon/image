@@ -7,9 +7,10 @@
 //!
 //! # Examples
 //! ```rust,no_run
-//! use image::codecs::gif::{GifDecoder, GifEncoder};
-//! use image::{ImageDecoder, AnimationDecoder};
 //! use std::fs::File;
+//!
+//! use image::codecs::gif::{GifDecoder, GifEncoder};
+//! use image::{AnimationDecoder, ImageDecoder};
 //! # fn main() -> std::io::Result<()> {
 //! // Decode a gif into frames
 //! let file_in = File::open("foo.gif")?;
@@ -26,17 +27,14 @@
 //! ```
 #![allow(clippy::while_let_loop)]
 
-use std::convert::TryFrom;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::io::{self, Cursor, Read, Write};
 use std::marker::PhantomData;
 use std::mem;
 
-use gif::ColorOutput;
-use gif::{DisposalMethod, Frame};
+use gif::{ColorOutput, DisposalMethod, Frame};
 use num_rational::Ratio;
 
-use crate::animation;
 use crate::color::{ColorType, Rgba};
 use crate::error::{
     DecodingError, EncodingError, ImageError, ImageResult, ParameterError, ParameterErrorKind,
@@ -45,7 +43,7 @@ use crate::error::{
 use crate::image::{self, AnimationDecoder, ImageDecoder, ImageFormat};
 use crate::io::Limits;
 use crate::traits::Pixel;
-use crate::ImageBuffer;
+use crate::{animation, ImageBuffer};
 
 /// GIF decoder
 pub struct GifDecoder<R: Read> {

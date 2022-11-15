@@ -1,5 +1,6 @@
-use byteorder::{LittleEndian, WriteBytesExt};
 use std::io::{self, Write};
+
+use byteorder::{LittleEndian, WriteBytesExt};
 
 use crate::error::{
     EncodingError, ImageError, ImageFormatHint, ImageResult, ParameterError, ParameterErrorKind,
@@ -297,11 +298,12 @@ fn get_pixel_info(c: color::ColorType, palette: Option<&[[u8; 3]]>) -> io::Resul
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
     use super::super::BmpDecoder;
     use super::BmpEncoder;
     use crate::color::ColorType;
     use crate::image::ImageDecoder;
-    use std::io::Cursor;
 
     fn round_trip_image(image: &[u8], width: u32, height: u32, c: ColorType) -> Vec<u8> {
         let mut encoded_data = Vec::new();

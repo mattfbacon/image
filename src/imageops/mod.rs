@@ -1,28 +1,23 @@
 //! Image Processing Functions
 use std::cmp;
 
-use crate::image::{GenericImage, GenericImageView, SubImage};
-use crate::traits::{Lerp, Pixel, Primitive};
-
-pub use self::sample::FilterType;
-
-pub use self::sample::FilterType::{CatmullRom, Gaussian, Lanczos3, Nearest, Triangle};
-
 /// Affine transformations
 pub use self::affine::{
     flip_horizontal, flip_horizontal_in, flip_horizontal_in_place, flip_vertical, flip_vertical_in,
     flip_vertical_in_place, rotate180, rotate180_in, rotate180_in_place, rotate270, rotate270_in,
     rotate90, rotate90_in,
 };
-
-/// Image sampling
-pub use self::sample::{blur, filter3x3, resize, thumbnail, unsharpen};
-
 /// Color operations
 pub use self::colorops::{
     brighten, contrast, dither, grayscale, grayscale_alpha, grayscale_with_type,
     grayscale_with_type_alpha, huerotate, index_colors, invert, BiLevel, ColorMap,
 };
+pub use self::sample::FilterType;
+pub use self::sample::FilterType::{CatmullRom, Gaussian, Lanczos3, Nearest, Triangle};
+/// Image sampling
+pub use self::sample::{blur, filter3x3, resize, thumbnail, unsharpen};
+use crate::image::{GenericImage, GenericImageView, SubImage};
+use crate::traits::{Lerp, Pixel, Primitive};
 
 mod affine;
 // Public only because of Rust bug:
@@ -162,7 +157,6 @@ pub fn overlay_bounds(
 /// In particular, we want to ensure that all these coordinate accesses are safe:
 /// 1. `bottom.get_pixel(origin_bottom_x + [0..x_range), origin_bottom_y + [0..y_range))`
 /// 2. `top.get_pixel(origin_top_y + [0..x_range), origin_top_y + [0..y_range))`
-///
 fn overlay_bounds_ext(
     (bottom_width, bottom_height): (u32, u32),
     (top_width, top_height): (u32, u32),
@@ -239,7 +233,7 @@ where
 ///
 /// # Examples
 /// ```no_run
-/// use image::{RgbaImage};
+/// use image::RgbaImage;
 ///
 /// let mut img = RgbaImage::new(1920, 1080);
 /// let tile = image::open("tile.png").unwrap();
@@ -351,8 +345,7 @@ mod tests {
 
     use super::{overlay, overlay_bounds_ext};
     use crate::color::Rgb;
-    use crate::ImageBuffer;
-    use crate::RgbaImage;
+    use crate::{ImageBuffer, RgbaImage};
 
     #[test]
     fn test_overlay_bounds_ext() {

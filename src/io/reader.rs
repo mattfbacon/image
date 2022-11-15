@@ -2,12 +2,11 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader, Cursor, Read, Seek, SeekFrom};
 use std::path::Path;
 
+use super::free_functions;
 use crate::dynimage::DynamicImage;
 use crate::error::{ImageFormatHint, UnsupportedError, UnsupportedErrorKind};
 use crate::image::ImageFormat;
 use crate::{ImageError, ImageResult};
-
-use super::free_functions;
 
 /// A multi-format image reader.
 ///
@@ -23,8 +22,7 @@ use super::free_functions;
 /// # use image::ImageError;
 /// # use image::io::Reader;
 /// # fn main() -> Result<(), ImageError> {
-/// let image = Reader::open("path/to/image.png")?
-///     .decode()?;
+/// let image = Reader::open("path/to/image.png")?.decode()?;
 /// # Ok(()) }
 /// ```
 ///
@@ -37,6 +35,7 @@ use super::free_functions;
 /// # use image::io::Reader;
 /// # fn main() -> Result<(), ImageError> {
 /// use std::io::Cursor;
+///
 /// use image::ImageFormat;
 ///
 /// let raw_data = b"P1 2 2\n\
@@ -44,8 +43,8 @@ use super::free_functions;
 ///     1 0\n";
 ///
 /// let mut reader = Reader::new(Cursor::new(raw_data))
-///     .with_guessed_format()
-///     .expect("Cursor io never fails");
+/// 	.with_guessed_format()
+/// 	.expect("Cursor io never fails");
 /// assert_eq!(reader.format(), Some(ImageFormat::Pnm));
 ///
 /// # #[cfg(feature = "pnm")]
@@ -182,8 +181,8 @@ impl<R: BufRead + Seek> Reader<R> {
     /// # use image::io::Reader;
     /// # fn main() -> Result<(), ImageError> {
     /// let image = Reader::open("image.unknown")?
-    ///     .with_guessed_format()?
-    ///     .decode()?;
+    /// 	.with_guessed_format()?
+    /// 	.decode()?;
     /// # Ok(()) }
     /// ```
     pub fn with_guessed_format(mut self) -> io::Result<Self> {

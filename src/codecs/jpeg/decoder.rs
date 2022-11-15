@@ -178,9 +178,10 @@ mod tests {
     #[cfg(feature = "benchmarks")]
     extern crate test;
 
-    use super::cmyk_to_rgb;
     #[cfg(feature = "benchmarks")]
     use test::Bencher;
+
+    use super::cmyk_to_rgb;
 
     #[cfg(feature = "benchmarks")]
     const W: usize = 256;

@@ -1,7 +1,8 @@
 //! Functions for altering and converting the color of pixelbufs
 
-use num_traits::NumCast;
 use std::f64::consts::PI;
+
+use num_traits::NumCast;
 
 use crate::color::{FromColor, IntoColor, Luma, LumaA, Rgba};
 use crate::image::{GenericImage, GenericImageView};
@@ -383,17 +384,18 @@ pub trait ColorMap {
 /// let cmap = BiLevel;
 /// let palletized = index_colors(&gray, &cmap);
 /// let mapped = ImageBuffer::from_fn(w, h, |x, y| {
-///     let p = palletized.get_pixel(x, y);
-///     cmap.lookup(p.0[0] as usize)
-///         .expect("indexed color out-of-range")
+/// 	let p = palletized.get_pixel(x, y);
+/// 	cmap
+/// 		.lookup(p.0[0] as usize)
+/// 		.expect("indexed color out-of-range")
 /// });
 /// // Create an black and white image of expected output.
 /// let bw = ImageBuffer::from_fn(w, h, |x, y| -> Luma<u8> {
-///     if x <= (w / 2) {
-///         [0].into()
-///     } else {
-///         [255].into()
-///     }
+/// 	if x <= (w / 2) {
+/// 		[0].into()
+/// 	} else {
+/// 		[255].into()
+/// 	}
 /// });
 /// assert_eq!(mapped, bw);
 /// ```

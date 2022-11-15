@@ -20,6 +20,9 @@
 //!     - meta data is lost
 //!     - dwaa/dwab compressed images not supported yet by the exr library
 //!     - (chroma) subsampling not supported yet by the exr library
+use std::convert::TryInto;
+use std::io::{Cursor, Read, Seek, Write};
+
 use exr::prelude::*;
 
 use crate::error::{DecodingError, EncodingError, ImageFormatHint};
@@ -28,8 +31,6 @@ use crate::{
     ColorType, ExtendedColorType, ImageDecoder, ImageEncoder, ImageError, ImageFormat, ImageResult,
     Progress,
 };
-use std::convert::TryInto;
-use std::io::{Cursor, Read, Seek, Write};
 
 /// An OpenEXR decoder. Immediately reads the meta data from the file.
 #[derive(Debug)]
@@ -378,11 +379,10 @@ fn to_image_err(exr_error: Error) -> ImageError {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
 
+    use super::*;
     use crate::buffer_::{Rgb32FImage, Rgba32FImage};
     use crate::error::{LimitError, LimitErrorKind};
     use crate::{ImageBuffer, Rgb, Rgba};

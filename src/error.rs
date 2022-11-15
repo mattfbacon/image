@@ -468,7 +468,10 @@ impl fmt::Display for LimitError {
             LimitErrorKind::InsufficientMemory => write!(fmt, "Insufficient memory"),
             LimitErrorKind::DimensionError => write!(fmt, "Image is too large"),
             LimitErrorKind::Unsupported { .. } => {
-                write!(fmt, "The following strict limits are specified but not supported by the opertation: ")?;
+                write!(
+					fmt,
+					"The following strict limits are specified but not supported by the opertation: "
+				)?;
                 Ok(())
             }
         }
@@ -490,8 +493,9 @@ impl fmt::Display for ImageFormatHint {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::mem;
+
+    use super::*;
 
     #[allow(dead_code)]
     // This will fail to compile if the size of this type is large.

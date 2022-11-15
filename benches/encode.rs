@@ -1,10 +1,12 @@
 extern crate criterion;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use image::{codecs::bmp::BmpEncoder, codecs::jpeg::JpegEncoder, ColorType};
-
 use std::fs::File;
 use std::io::{BufWriter, Seek, SeekFrom, Write};
+
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use image::codecs::bmp::BmpEncoder;
+use image::codecs::jpeg::JpegEncoder;
+use image::ColorType;
 
 trait Encoder {
     fn encode_raw(&self, into: &mut Vec<u8>, im: &[u8], dims: u32, color: ColorType);

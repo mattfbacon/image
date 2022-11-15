@@ -1,17 +1,16 @@
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::convert::TryFrom;
 use std::io::{self, Cursor, Error, Read};
 use std::marker::PhantomData;
 use std::{error, fmt, mem};
 
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use super::extended::{read_extended_header, ExtendedImage};
+use super::lossless::{LosslessDecoder, LosslessFrame};
+use super::vp8::{Frame as VP8Frame, Vp8Decoder};
 use crate::error::{DecodingError, ImageError, ImageResult};
 use crate::image::{ImageDecoder, ImageFormat};
 use crate::{color, AnimationDecoder, Frames};
-
-use super::lossless::{LosslessDecoder, LosslessFrame};
-use super::vp8::{Frame as VP8Frame, Vp8Decoder};
-
-use super::extended::{read_extended_header, ExtendedImage};
 
 /// All errors that can occur when attempting to parse a WEBP container
 #[derive(Debug, Clone, Copy)]

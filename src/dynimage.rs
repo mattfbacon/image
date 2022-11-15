@@ -1,19 +1,17 @@
-use std::io;
 use std::io::{Seek, Write};
 use std::path::Path;
-use std::u32;
+use std::{io, u32};
 
+use crate::buffer_::{
+    ConvertBuffer, Gray16Image, GrayAlpha16Image, GrayAlphaImage, GrayImage, ImageBuffer,
+    Rgb16Image, RgbImage, Rgba16Image, RgbaImage,
+};
 #[cfg(feature = "gif")]
 use crate::codecs::gif;
 #[cfg(feature = "png")]
 use crate::codecs::png;
 #[cfg(feature = "pnm")]
 use crate::codecs::pnm;
-
-use crate::buffer_::{
-    ConvertBuffer, Gray16Image, GrayAlpha16Image, GrayAlphaImage, GrayImage, ImageBuffer,
-    Rgb16Image, RgbImage, Rgba16Image, RgbaImage,
-};
 use crate::color::{self, IntoColor};
 use crate::error::{ImageError, ImageResult, ParameterError, ParameterErrorKind};
 // FIXME: These imports exist because we don't support all of our own color types.
@@ -22,12 +20,10 @@ use crate::flat::FlatSamples;
 use crate::image::{
     GenericImage, GenericImageView, ImageDecoder, ImageEncoder, ImageFormat, ImageOutputFormat,
 };
-use crate::imageops;
 use crate::io::free_functions;
 use crate::math::resize_dimensions;
 use crate::traits::Pixel;
-use crate::{image, Luma, LumaA};
-use crate::{Rgb32FImage, Rgba32FImage};
+use crate::{image, imageops, Luma, LumaA, Rgb32FImage, Rgba32FImage};
 
 /// A Dynamic Image
 ///

@@ -1,6 +1,3 @@
-use crate::Primitive;
-use num_traits::identities::Zero;
-use scoped_threadpool::Pool;
 #[cfg(test)]
 use std::borrow::Cow;
 use std::convert::TryFrom;
@@ -11,12 +8,16 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::path::Path;
 use std::{error, fmt, mem};
 
+use num_traits::identities::Zero;
+use scoped_threadpool::Pool;
+
 use crate::color::{ColorType, Rgb};
 use crate::error::{
     DecodingError, ImageError, ImageFormatHint, ImageResult, ParameterError, ParameterErrorKind,
     UnsupportedError, UnsupportedErrorKind,
 };
 use crate::image::{self, ImageDecoder, ImageDecoderRect, ImageFormat, Progress};
+use crate::Primitive;
 
 /// Errors that can occur during decoding and parsing of a HDR image
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -487,7 +488,6 @@ impl<R: BufRead> HdrDecoder<R> {
     }
 
     /// Consumes decoder and returns a vector of Rgb<f32> pixels.
-    ///
     pub fn read_image_hdr(self) -> ImageResult<Vec<Rgb<f32>>> {
         let mut ret = vec![Rgb([0.0, 0.0, 0.0]); self.width as usize * self.height as usize];
         self.read_image_transform(|pix| pix.to_hdr(), &mut ret[..])?;
@@ -1004,9 +1004,10 @@ fn read_line_u8_test() {
 
 /// Helper function for reading raw 3-channel f32 images
 pub fn read_raw_file<P: AsRef<Path>>(path: P) -> ::std::io::Result<Vec<Rgb<f32>>> {
-    use byteorder::{LittleEndian as LE, ReadBytesExt};
     use std::fs::File;
     use std::io::BufReader;
+
+    use byteorder::{LittleEndian as LE, ReadBytesExt};
 
     let mut r = BufReader::new(File::open(path)?);
     let w = r.read_u32::<LE>()? as usize;
@@ -1026,8 +1027,9 @@ pub fn read_raw_file<P: AsRef<Path>>(path: P) -> ::std::io::Result<Vec<Rgb<f32>>
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use std::io::Cursor;
+
+    use super::*;
 
     #[test]
     fn dimension_overflow() {

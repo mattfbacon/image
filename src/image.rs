@@ -1,12 +1,14 @@
 #![allow(clippy::too_many_arguments)]
 use std::convert::TryFrom;
 use std::ffi::OsStr;
-use std::io;
 use std::io::Read;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
-use std::usize;
+use std::{io, usize};
 
+use crate::animation::Frames;
+#[cfg(feature = "pnm")]
+use crate::codecs::pnm::PnmSubtype;
 use crate::color::{ColorType, ExtendedColorType};
 use crate::error::{
     ImageError, ImageFormatHint, ImageResult, LimitError, LimitErrorKind, ParameterError,
@@ -15,11 +17,6 @@ use crate::error::{
 use crate::math::Rect;
 use crate::traits::Pixel;
 use crate::ImageBuffer;
-
-use crate::animation::Frames;
-
-#[cfg(feature = "pnm")]
-use crate::codecs::pnm::PnmSubtype;
 
 /// An enumeration of supported image formats.
 /// Not all formats support both encoding and decoding.
@@ -855,7 +852,7 @@ impl<I: ?Sized> Clone for Pixels<'_, I> {
 /// use image::{GenericImageView, Rgb, RgbImage};
 ///
 /// let buffer = RgbImage::new(10, 10);
-/// let image: &dyn GenericImageView<Pixel=Rgb<u8>> = &buffer;
+/// let image: &dyn GenericImageView<Pixel = Rgb<u8>> = &buffer;
 /// ```
 pub trait GenericImageView {
     /// The type of pixel.

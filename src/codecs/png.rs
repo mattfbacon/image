@@ -4,7 +4,6 @@
 //!
 //! # Related Links
 //! * <http://www.w3.org/TR/PNG/> - The PNG Specification
-//!
 
 use std::convert::TryFrom;
 use std::fmt;
@@ -715,11 +714,11 @@ impl std::error::Error for BadPngRepresentation {}
 
 #[cfg(test)]
 mod tests {
+    use std::io::{Cursor, Read};
+
     use super::*;
     use crate::image::ImageDecoder;
     use crate::ImageOutputFormat;
-
-    use std::io::{Cursor, Read};
 
     #[test]
     fn ensure_no_decoder_off_by_one() {

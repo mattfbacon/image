@@ -1,10 +1,11 @@
 //! Contains the generic `ImageBuffer` struct.
-use num_traits::Zero;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Index, IndexMut, Range};
 use std::path::Path;
 use std::slice::{ChunksExact, ChunksExactMut};
+
+use num_traits::Zero;
 
 use crate::color::{FromColor, Luma, LumaA, Rgb, Rgba};
 use crate::dynimage::{save_buffer, save_buffer_with_format, write_buffer_with_format};
@@ -614,30 +615,30 @@ where
 /// Create a simple canvas and paint a small cross.
 ///
 /// ```
-/// use image::{RgbImage, Rgb};
+/// use image::{Rgb, RgbImage};
 ///
 /// let mut img = RgbImage::new(32, 32);
 ///
 /// for x in 15..=17 {
-///     for y in 8..24 {
-///         img.put_pixel(x, y, Rgb([255, 0, 0]));
-///         img.put_pixel(y, x, Rgb([255, 0, 0]));
-///     }
+/// 	for y in 8..24 {
+/// 		img.put_pixel(x, y, Rgb([255, 0, 0]));
+/// 		img.put_pixel(y, x, Rgb([255, 0, 0]));
+/// 	}
 /// }
 /// ```
 ///
 /// Overlays an image on top of a larger background raster.
 ///
 /// ```no_run
-/// use image::{GenericImage, GenericImageView, ImageBuffer, open};
+/// use image::{open, GenericImage, GenericImageView, ImageBuffer};
 ///
 /// let on_top = open("path/to/some.png").unwrap().into_rgb8();
 /// let mut img = ImageBuffer::from_fn(512, 512, |x, y| {
-///     if (x + y) % 2 == 0 {
-///         image::Rgb([0, 0, 0])
-///     } else {
-///         image::Rgb([255, 255, 255])
-///     }
+/// 	if (x + y) % 2 == 0 {
+/// 		image::Rgb([0, 0, 0])
+/// 	} else {
+/// 		image::Rgb([255, 255, 255])
+/// 	}
 /// });
 ///
 /// image::imageops::overlay(&mut img, &on_top, 128, 128);
@@ -846,7 +847,7 @@ where
         FlatSamples {
             samples: self.data,
             layout,
-            color_hint: None, // TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType
+            color_hint: None, /* TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType */
         }
     }
 
@@ -861,7 +862,7 @@ where
         FlatSamples {
             samples: self.data.as_ref(),
             layout,
-            color_hint: None, // TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType
+            color_hint: None, /* TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType */
         }
     }
 
@@ -876,7 +877,7 @@ where
         FlatSamples {
             samples: self.data.as_mut(),
             layout,
-            color_hint: None, // TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType
+            color_hint: None, /* TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType */
         }
     }
 }
@@ -1361,8 +1362,8 @@ where
     ///
     /// let image_path = "examples/fractal.png";
     /// let image = image::open(&image_path)
-    ///     .expect("Open file failed")
-    ///     .to_rgba8();
+    /// 	.expect("Open file failed")
+    /// 	.to_rgba8();
     ///
     /// let gray_image: GrayImage = image.convert();
     /// ```
@@ -1405,8 +1406,7 @@ pub type Rgba32FImage = ImageBuffer<Rgba<f32>, Vec<f32>>;
 mod test {
     use super::{GrayImage, ImageBuffer, ImageOutputFormat, RgbImage};
     use crate::math::Rect;
-    use crate::GenericImage as _;
-    use crate::{color, Rgb};
+    use crate::{color, GenericImage as _, Rgb};
 
     #[test]
     /// Tests if image buffers from slices work
@@ -1663,9 +1663,10 @@ mod test {
 #[cfg(test)]
 #[cfg(feature = "benchmarks")]
 mod benchmarks {
+    use test;
+
     use super::{ConvertBuffer, GrayImage, ImageBuffer, Pixel, RgbImage};
     use crate::GenericImage;
-    use test;
 
     #[bench]
     fn conversion(b: &mut test::Bencher) {

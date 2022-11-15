@@ -2,13 +2,15 @@ use std::convert::TryInto;
 use std::io::{self, Cursor, Error, Read};
 use std::{error, fmt};
 
-use super::decoder::{read_chunk, DecoderError::ChunkHeaderInvalid, WebPRiffChunk};
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use super::decoder::DecoderError::ChunkHeaderInvalid;
+use super::decoder::{read_chunk, WebPRiffChunk};
 use super::lossless::{LosslessDecoder, LosslessFrame};
 use super::vp8::{Frame as VP8Frame, Vp8Decoder};
 use crate::error::DecodingError;
 use crate::image::ImageFormat;
 use crate::{color, Delay, Frame, Frames, ImageError, ImageResult, Rgb, RgbImage, Rgba, RgbaImage};
-use byteorder::{LittleEndian, ReadBytesExt};
 
 //all errors that can occur while parsing extended chunks in a WebP file
 #[derive(Debug, Clone, Copy)]

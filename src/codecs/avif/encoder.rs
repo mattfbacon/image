@@ -7,18 +7,17 @@ use std::borrow::Cow;
 use std::cmp::min;
 use std::io::Write;
 
+use bytemuck::{try_cast_slice, try_cast_slice_mut, Pod, PodCastError};
+use num_traits::Zero;
+use ravif::{encode_rgb, encode_rgba, Config, Img, RGB8, RGBA8};
+use rgb::AsPixels;
+
 use crate::buffer::ConvertBuffer;
 use crate::color::{FromColor, Luma, LumaA, Rgb, Rgba};
 use crate::error::{
     EncodingError, ParameterError, ParameterErrorKind, UnsupportedError, UnsupportedErrorKind,
 };
-use crate::{ColorType, ImageBuffer, ImageFormat, Pixel};
-use crate::{ImageError, ImageResult};
-
-use bytemuck::{try_cast_slice, try_cast_slice_mut, Pod, PodCastError};
-use num_traits::Zero;
-use ravif::{encode_rgb, encode_rgba, Config, Img, RGB8, RGBA8};
-use rgb::AsPixels;
+use crate::{ColorType, ImageBuffer, ImageError, ImageFormat, ImageResult, Pixel};
 
 /// AVIF Encoder.
 ///

@@ -90,8 +90,9 @@ impl<W: io::Write> Drop for AutoBreak<W> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Write;
+
+    use super::*;
 
     #[test]
     fn test_aligned_writes() {
