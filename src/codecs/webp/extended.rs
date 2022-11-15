@@ -479,8 +479,8 @@ impl WebPStatic {
 
     pub(crate) fn get_buf_size(&self) -> usize {
         match self {
-            WebPStatic::LossyWithAlpha(rgb_image) => rgb_image.len(),
-            WebPStatic::LossyWithoutAlpha(rgba_image) => rgba_image.len(),
+            WebPStatic::LossyWithAlpha(rgba_image) => rgba_image.len(),
+            WebPStatic::LossyWithoutAlpha(rgb_image) => rgb_image.len(),
             WebPStatic::Lossless(lossless) => lossless.get_buf_size(),
         }
     }
