@@ -1,16 +1,17 @@
 //! Contains the generic `ImageBuffer` struct.
-use num_traits::Zero;
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Index, IndexMut, Range};
 use std::path::Path;
 use std::slice::{ChunksExact, ChunksExactMut};
 
+use num_traits::Zero;
+
 use crate::color::{FromColor, Luma, LumaA, Rgb, Rgba};
 use crate::dynimage::{save_buffer, save_buffer_with_format, write_buffer_with_format};
 use crate::error::ImageResult;
 use crate::flat::{FlatSamples, SampleLayout};
-use crate::image::{GenericImage, GenericImageView, ImageEncoder, ImageFormat, ImageOutputFormat};
+use crate::image::{GenericImage, GenericImageView, ImageFormat, ImageOutputFormat};
 use crate::math::Rect;
 use crate::traits::{EncodableLayout, Pixel, PixelWithColorType};
 use crate::utils::expand_packed;
@@ -614,30 +615,30 @@ where
 /// Create a simple canvas and paint a small cross.
 ///
 /// ```
-/// use image::{RgbImage, Rgb};
+/// use image::{Rgb, RgbImage};
 ///
 /// let mut img = RgbImage::new(32, 32);
 ///
 /// for x in 15..=17 {
-///     for y in 8..24 {
-///         img.put_pixel(x, y, Rgb([255, 0, 0]));
-///         img.put_pixel(y, x, Rgb([255, 0, 0]));
-///     }
+/// 	for y in 8..24 {
+/// 		img.put_pixel(x, y, Rgb([255, 0, 0]));
+/// 		img.put_pixel(y, x, Rgb([255, 0, 0]));
+/// 	}
 /// }
 /// ```
 ///
 /// Overlays an image on top of a larger background raster.
 ///
 /// ```no_run
-/// use image::{GenericImage, GenericImageView, ImageBuffer, open};
+/// use image::{open, GenericImage, GenericImageView, ImageBuffer};
 ///
 /// let on_top = open("path/to/some.png").unwrap().into_rgb8();
 /// let mut img = ImageBuffer::from_fn(512, 512, |x, y| {
-///     if (x + y) % 2 == 0 {
-///         image::Rgb([0, 0, 0])
-///     } else {
-///         image::Rgb([255, 255, 255])
-///     }
+/// 	if (x + y) % 2 == 0 {
+/// 		image::Rgb([0, 0, 0])
+/// 	} else {
+/// 		image::Rgb([255, 255, 255])
+/// 	}
 /// });
 ///
 /// image::imageops::overlay(&mut img, &on_top, 128, 128);
@@ -764,7 +765,6 @@ where
     ///
     /// Panics if `(x, y)` is out of the bounds `(width, height)`.
     #[inline]
-    #[track_caller]
     pub fn get_pixel(&self, x: u32, y: u32) -> &P {
         match self.pixel_indices(x, y) {
             None => panic!(
@@ -789,7 +789,7 @@ where
             .saturating_mul(num_channels);
 
         self.data
-            .get(i..i.checked_add(num_channels)?)
+            .get(i..i + num_channels)
             .map(|pixel_indices| <P as Pixel>::from_slice(pixel_indices))
     }
 
@@ -847,7 +847,7 @@ where
         FlatSamples {
             samples: self.data,
             layout,
-            color_hint: None, // TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType
+            color_hint: None, /* TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType */
         }
     }
 
@@ -862,7 +862,7 @@ where
         FlatSamples {
             samples: self.data.as_ref(),
             layout,
-            color_hint: None, // TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType
+            color_hint: None, /* TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType */
         }
     }
 
@@ -877,7 +877,7 @@ where
         FlatSamples {
             samples: self.data.as_mut(),
             layout,
-            color_hint: None, // TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType
+            color_hint: None, /* TODO: the pixel type might contain P::COLOR_TYPE if it satisfies PixelWithColorType */
         }
     }
 }
@@ -942,7 +942,6 @@ where
     ///
     /// Panics if `(x, y)` is out of the bounds `(width, height)`.
     #[inline]
-    #[track_caller]
     pub fn get_pixel_mut(&mut self, x: u32, y: u32) -> &mut P {
         match self.pixel_indices(x, y) {
             None => panic!(
@@ -967,7 +966,7 @@ where
             .saturating_mul(num_channels);
 
         self.data
-            .get_mut(i..i.checked_add(num_channels)?)
+            .get_mut(i..i + num_channels)
             .map(|pixel_indices| <P as Pixel>::from_slice_mut(pixel_indices))
     }
 
@@ -976,8 +975,6 @@ where
     /// # Panics
     ///
     /// Panics if `(x, y)` is out of the bounds `(width, height)`.
-    #[inline]
-    #[track_caller]
     pub fn put_pixel(&mut self, x: u32, y: u32, pixel: P) {
         *self.get_pixel_mut(x, y) = pixel
     }
@@ -1066,28 +1063,6 @@ where
     }
 }
 
-impl<P, Container> ImageBuffer<P, Container>
-where
-    P: Pixel,
-    [P::Subpixel]: EncodableLayout,
-    Container: Deref<Target = [P::Subpixel]>,
-{
-    /// Writes the buffer with the given encoder.
-    pub fn write_with_encoder<E>(&self, encoder: E) -> ImageResult<()>
-    where
-        E: ImageEncoder,
-        P: PixelWithColorType,
-    {
-        // This is valid as the subpixel is u8.
-        encoder.write_image(
-            self.inner_pixels().as_bytes(),
-            self.width(),
-            self.height(),
-            <P as PixelWithColorType>::COLOR_TYPE,
-        )
-    }
-}
-
 impl<P, Container> Default for ImageBuffer<P, Container>
 where
     P: Pixel,
@@ -1111,7 +1086,7 @@ where
     type Target = [P::Subpixel];
 
     fn deref(&self) -> &<Self as Deref>::Target {
-        &self.data
+        &*self.data
     }
 }
 
@@ -1121,7 +1096,7 @@ where
     Container: Deref<Target = [P::Subpixel]> + DerefMut,
 {
     fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
-        &mut self.data
+        &mut *self.data
     }
 }
 
@@ -1266,7 +1241,7 @@ impl<P: Pixel> ImageBuffer<P, Vec<P::Subpixel>> {
     ///
     /// # Panics
     ///
-    /// Panics when the resulting image is larger than the maximum size of a vector.
+    /// Panics when the resulting image is larger the the maximum size of a vector.
     pub fn new(width: u32, height: u32) -> ImageBuffer<P, Vec<P::Subpixel>> {
         let size = Self::image_buffer_len(width, height)
             .expect("Buffer length in `ImageBuffer::new` overflows usize");
@@ -1373,7 +1348,7 @@ impl GrayImage {
 // TODO: Equality constraints are not yet supported in where clauses, when they
 // are, the T parameter should be removed in favor of ToType::Subpixel, which
 // will then be FromType::Subpixel.
-impl<Container, FromType: Pixel, ToType: Pixel>
+impl<'a, 'b, Container, FromType: Pixel, ToType: Pixel>
     ConvertBuffer<ImageBuffer<ToType, Vec<ToType::Subpixel>>> for ImageBuffer<FromType, Container>
 where
     Container: Deref<Target = [FromType::Subpixel]>,
@@ -1387,8 +1362,8 @@ where
     ///
     /// let image_path = "examples/fractal.png";
     /// let image = image::open(&image_path)
-    ///     .expect("Open file failed")
-    ///     .to_rgba8();
+    /// 	.expect("Open file failed")
+    /// 	.to_rgba8();
     ///
     /// let gray_image: GrayImage = image.convert();
     /// ```
@@ -1431,8 +1406,7 @@ pub type Rgba32FImage = ImageBuffer<Rgba<f32>, Vec<f32>>;
 mod test {
     use super::{GrayImage, ImageBuffer, ImageOutputFormat, RgbImage};
     use crate::math::Rect;
-    use crate::GenericImage as _;
-    use crate::{color, Rgb};
+    use crate::{color, GenericImage as _, Rgb};
 
     #[test]
     /// Tests if image buffers from slices work
@@ -1455,7 +1429,7 @@ mod test {
     #[test]
     fn get_pixel_checked() {
         let mut a: RgbImage = ImageBuffer::new(10, 10);
-        a.get_pixel_mut_checked(0, 1).unwrap()[0] = 255;
+        a.get_pixel_mut_checked(0, 1).map(|b| b[0] = 255);
 
         assert_eq!(a.get_pixel_checked(0, 1), Some(&Rgb([255, 0, 0])));
         assert_eq!(a.get_pixel_checked(0, 1).unwrap(), a.get_pixel(0, 1));
@@ -1547,8 +1521,12 @@ mod test {
 
     #[test]
     fn test_image_buffer_copy_within_tl() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [0, 1, 2, 3, 4, 0, 1, 2, 8, 4, 5, 6, 12, 8, 9, 10];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            00, 01, 02, 03, 04, 00, 01, 02, 08, 04, 05, 06, 12, 08, 09, 10,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.copy_within(
             Rect {
@@ -1565,8 +1543,12 @@ mod test {
 
     #[test]
     fn test_image_buffer_copy_within_tr() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [0, 1, 2, 3, 1, 2, 3, 7, 5, 6, 7, 11, 9, 10, 11, 15];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            00, 01, 02, 03, 01, 02, 03, 07, 05, 06, 07, 11, 09, 10, 11, 15,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.copy_within(
             Rect {
@@ -1583,8 +1565,12 @@ mod test {
 
     #[test]
     fn test_image_buffer_copy_within_bl() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [0, 4, 5, 6, 4, 8, 9, 10, 8, 12, 13, 14, 12, 13, 14, 15];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            00, 04, 05, 06, 04, 08, 09, 10, 08, 12, 13, 14, 12, 13, 14, 15,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.copy_within(
             Rect {
@@ -1601,8 +1587,12 @@ mod test {
 
     #[test]
     fn test_image_buffer_copy_within_br() {
-        let data = &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let expected = [5, 6, 7, 3, 9, 10, 11, 7, 13, 14, 15, 11, 12, 13, 14, 15];
+        let data = &[
+            00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15,
+        ];
+        let expected = [
+            05, 06, 07, 03, 09, 10, 11, 07, 13, 14, 15, 11, 12, 13, 14, 15,
+        ];
         let mut image: GrayImage = ImageBuffer::from_raw(4, 4, Vec::from(&data[..])).unwrap();
         assert!(image.copy_within(
             Rect {
@@ -1673,7 +1663,10 @@ mod test {
 #[cfg(test)]
 #[cfg(feature = "benchmarks")]
 mod benchmarks {
+    use test;
+
     use super::{ConvertBuffer, GrayImage, ImageBuffer, Pixel, RgbImage};
+    use crate::GenericImage;
 
     #[bench]
     fn conversion(b: &mut test::Bencher) {

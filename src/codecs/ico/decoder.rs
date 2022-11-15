@@ -1,18 +1,18 @@
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::convert::TryFrom;
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use std::marker::PhantomData;
 use std::{error, fmt, mem};
 
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use self::InnerDecoder::*;
+use crate::codecs::bmp::BmpDecoder;
+use crate::codecs::png::{PngDecoder, PNG_SIGNATURE};
 use crate::color::ColorType;
 use crate::error::{
     DecodingError, ImageError, ImageResult, UnsupportedError, UnsupportedErrorKind,
 };
 use crate::image::{self, ImageDecoder, ImageFormat};
-
-use self::InnerDecoder::*;
-use crate::codecs::bmp::BmpDecoder;
-use crate::codecs::png::{PngDecoder, PNG_SIGNATURE};
 
 /// Errors that can occur during decoding and parsing an ICO image or one of its enclosed images.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]

@@ -1,8 +1,9 @@
-use image::imageops::FilterType;
-use image::ImageFormat;
 use std::fmt;
 use std::fs::File;
 use std::time::{Duration, Instant};
+
+use image::imageops::FilterType;
+use image::ImageFormat;
 
 struct Elapsed(Duration);
 

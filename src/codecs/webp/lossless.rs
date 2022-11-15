@@ -1,22 +1,18 @@
 //! Decoding of lossless WebP images
 //!
 //! [Lossless spec](https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification)
-//!
 
-use std::{
-    convert::TryFrom,
-    convert::TryInto,
-    error, fmt,
-    io::Read,
-    ops::{AddAssign, Shl},
-};
+use std::convert::{TryFrom, TryInto};
+use std::io::Read;
+use std::ops::{AddAssign, Shl};
+use std::{error, fmt};
 
 use byteorder::ReadBytesExt;
 
-use crate::{error::DecodingError, ImageError, ImageFormat, ImageResult};
-
 use super::huffman::HuffmanTree;
 use super::lossless_transform::{add_pixels, TransformType};
+use crate::error::DecodingError;
+use crate::{ImageError, ImageFormat, ImageResult};
 
 const CODE_LENGTH_CODES: usize = 19;
 const CODE_LENGTH_CODE_ORDER: [usize; CODE_LENGTH_CODES] = [

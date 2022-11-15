@@ -17,12 +17,15 @@
 //!
 //! ```rust,no_run
 //! use std::io::Cursor;
+//!
 //! use image::io::Reader as ImageReader;
 //! # fn main() -> Result<(), image::ImageError> {
 //! # let bytes = vec![0u8];
 //!
 //! let img = ImageReader::open("myimage.png")?.decode()?;
-//! let img2 = ImageReader::new(Cursor::new(bytes)).with_guessed_format()?.decode()?;
+//! let img2 = ImageReader::new(Cursor::new(bytes))
+//! 	.with_guessed_format()?
+//! 	.decode()?;
 //! # Ok(())
 //! # }
 //! ```
@@ -119,6 +122,7 @@
 #![cfg_attr(all(test, feature = "benchmarks"), feature(test))]
 // it's a backwards compatibility break
 #![allow(clippy::wrong_self_convention, clippy::enum_variant_names)]
+#![allow(clippy::tabs_in_doc_comments)]
 
 #[cfg(all(test, feature = "benchmarks"))]
 extern crate test;
@@ -127,12 +131,26 @@ extern crate test;
 #[macro_use]
 extern crate quickcheck;
 
-pub use crate::color::{ColorType, ExtendedColorType};
-
-pub use crate::color::{Luma, LumaA, Rgb, Rgba};
-
+pub use crate::animation::{Delay, Frame, Frames};
+pub use crate::buffer_::{
+    GrayAlphaImage,
+    GrayImage,
+    // Image types
+    ImageBuffer,
+    Rgb32FImage,
+    RgbImage,
+    Rgba32FImage,
+    RgbaImage,
+};
+pub use crate::color::{ColorType, ExtendedColorType, Luma, LumaA, Rgb, Rgba};
+pub use crate::dynimage::DynamicImage;
+// Opening and loading images
+pub use crate::dynimage::{
+    image_dimensions, load_from_memory, load_from_memory_with_format, open, save_buffer,
+    save_buffer_with_format, write_buffer_with_format,
+};
 pub use crate::error::{ImageError, ImageResult};
-
+pub use crate::flat::FlatSamples;
 pub use crate::image::{
     AnimationDecoder,
     GenericImage,
@@ -147,33 +165,9 @@ pub use crate::image::{
     Progress,
     SubImage,
 };
-
-pub use crate::buffer_::{
-    GrayAlphaImage,
-    GrayImage,
-    // Image types
-    ImageBuffer,
-    Rgb32FImage,
-    RgbImage,
-    Rgba32FImage,
-    RgbaImage,
-};
-
-pub use crate::flat::FlatSamples;
-
+pub use crate::io::free_functions::{guess_format, load};
 // Traits
 pub use crate::traits::{EncodableLayout, Pixel, PixelWithColorType, Primitive};
-
-// Opening and loading images
-pub use crate::dynimage::{
-    image_dimensions, load_from_memory, load_from_memory_with_format, open, save_buffer,
-    save_buffer_with_format, write_buffer_with_format,
-};
-pub use crate::io::free_functions::{guess_format, load};
-
-pub use crate::dynimage::DynamicImage;
-
-pub use crate::animation::{Delay, Frame, Frames};
 
 // More detailed error type
 pub mod error;

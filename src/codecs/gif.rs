@@ -7,9 +7,10 @@
 //!
 //! # Examples
 //! ```rust,no_run
-//! use image::codecs::gif::{GifDecoder, GifEncoder};
-//! use image::{ImageDecoder, AnimationDecoder};
 //! use std::fs::File;
+//!
+//! use image::codecs::gif::{GifDecoder, GifEncoder};
+//! use image::{AnimationDecoder, ImageDecoder};
 //! # fn main() -> std::io::Result<()> {
 //! // Decode a gif into frames
 //! let file_in = File::open("foo.gif")?;
@@ -26,16 +27,14 @@
 //! ```
 #![allow(clippy::while_let_loop)]
 
-use std::convert::TryFrom;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::io::{self, Cursor, Read, Write};
 use std::marker::PhantomData;
 use std::mem;
 
-use gif::ColorOutput;
-use gif::{DisposalMethod, Frame};
+use gif::{ColorOutput, DisposalMethod, Frame};
+use num_rational::Ratio;
 
-use crate::animation::{self, Ratio};
 use crate::color::{ColorType, Rgba};
 use crate::error::{
     DecodingError, EncodingError, ImageError, ImageResult, ParameterError, ParameterErrorKind,
@@ -44,7 +43,7 @@ use crate::error::{
 use crate::image::{self, AnimationDecoder, ImageDecoder, ImageFormat};
 use crate::io::Limits;
 use crate::traits::Pixel;
-use crate::ImageBuffer;
+use crate::{animation, ImageBuffer};
 
 /// GIF decoder
 pub struct GifDecoder<R: Read> {
@@ -230,6 +229,9 @@ impl<R: Read> GifFrameIterator<R> {
     fn new(decoder: GifDecoder<R>) -> GifFrameIterator<R> {
         let (width, height) = decoder.dimensions();
 
+        // TODO: Avoid this cast
+        let (width, height) = (width as u32, height as u32);
+
         // intentionally ignore the background color for web compatibility
 
         // create the first non disposed frame
@@ -412,7 +414,7 @@ pub struct GifEncoder<W: Write> {
 }
 
 impl<W: Write> GifEncoder<W> {
-    /// Creates a new GIF encoder with a speed of 1. This prioritizes quality over performance at any cost.
+    /// Creates a new GIF encoder.
     pub fn new(w: W) -> GifEncoder<W> {
         Self::new_with_speed(w, 1)
     }
@@ -422,7 +424,7 @@ impl<W: Write> GifEncoder<W> {
     /// for more information.
     pub fn new_with_speed(w: W, speed: i32) -> GifEncoder<W> {
         assert!(
-            (1..=30).contains(&speed),
+            speed >= 1 && speed <= 30,
             "speed needs to be in the range [1, 30]"
         );
         GifEncoder {
@@ -509,7 +511,7 @@ impl<W: Write> GifEncoder<W> {
         let (width, height) = self.gif_dimensions(rbga_frame.width(), rbga_frame.height())?;
 
         // Create the gif::Frame from the animation::Frame
-        let mut frame = Frame::from_rgba_speed(width, height, &mut rbga_frame, self.speed);
+        let mut frame = Frame::from_rgba_speed(width, height, &mut *rbga_frame, self.speed);
         // Saturate the conversion to u16::MAX instead of returning an error as that
         // would require a new special cased variant in ParameterErrorKind which most
         // likely couldn't be reused for other cases. This isn't a bad trade-off given

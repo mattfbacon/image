@@ -4,17 +4,16 @@ use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::io::{self, Write};
 
+use super::entropy::build_huff_lut_const;
+use super::transform;
 use crate::error::{
     ImageError, ImageResult, ParameterError, ParameterErrorKind, UnsupportedError,
     UnsupportedErrorKind,
 };
 use crate::image::{ImageEncoder, ImageFormat};
+use crate::traits::PixelWithColorType;
 use crate::utils::clamp;
 use crate::{ColorType, GenericImageView, ImageBuffer, Luma, LumaA, Pixel, Rgb, Rgba};
-
-use super::entropy::build_huff_lut_const;
-use super::transform;
-use crate::traits::PixelWithColorType;
 
 // Markers
 // Baseline DCT
@@ -303,7 +302,13 @@ pub enum PixelDensityUnit {
 /// ```rust
 /// use image::codecs::jpeg::*;
 /// let hdpi = PixelDensity::dpi(300);
-/// assert_eq!(hdpi, PixelDensity {density: (300,300), unit: PixelDensityUnit::Inches})
+/// assert_eq!(
+/// 	hdpi,
+/// 	PixelDensity {
+/// 		density: (300, 300),
+/// 		unit: PixelDensityUnit::Inches
+/// 	}
+/// )
 /// ```
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PixelDensity {
@@ -782,8 +787,9 @@ fn encode_coefficient(coefficient: i32) -> (u8, u16) {
 
 #[inline]
 fn rgb_to_ycbcr<P: Pixel>(pixel: P) -> (u8, u8, u8) {
-    use crate::traits::Primitive;
     use num_traits::cast::ToPrimitive;
+
+    use crate::traits::Primitive;
 
     let [r, g, b] = pixel.to_rgb().0;
     let max: f32 = P::Subpixel::DEFAULT_MAX_VALUE.to_f32().unwrap();
@@ -850,17 +856,16 @@ mod tests {
     #[cfg(feature = "benchmarks")]
     use test::Bencher;
 
-    use crate::color::ColorType;
-    use crate::error::ParameterErrorKind::DimensionMismatch;
-    use crate::image::ImageDecoder;
-    use crate::{ImageEncoder, ImageError};
-
     use super::super::JpegDecoder;
     use super::{
         build_frame_header, build_huffman_segment, build_jfif_header, build_quantization_segment,
         build_scan_header, Component, JpegEncoder, PixelDensity, DCCLASS, LUMADESTINATION,
         STD_LUMA_DC_CODE_LENGTHS, STD_LUMA_DC_VALUES,
     };
+    use crate::color::ColorType;
+    use crate::error::ParameterErrorKind::DimensionMismatch;
+    use crate::image::ImageDecoder;
+    use crate::{ImageEncoder, ImageError};
 
     fn decode(encoded: &[u8]) -> Vec<u8> {
         let decoder = JpegDecoder::new(Cursor::new(encoded)).expect("Could not decode image");

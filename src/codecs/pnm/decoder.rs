@@ -1,23 +1,23 @@
-use std::convert::TryFrom;
-use std::convert::TryInto;
-use std::error;
+use std::convert::{TryFrom, TryInto};
 use std::fmt::{self, Display};
 use std::io::{self, BufRead, Cursor, Read};
 use std::marker::PhantomData;
-use std::mem;
 use std::num::ParseIntError;
 use std::str::{self, FromStr};
+use std::{error, mem};
 
-use super::{ArbitraryHeader, ArbitraryTuplType, BitmapHeader, GraymapHeader, PixmapHeader};
-use super::{HeaderRecord, PnmHeader, PnmSubtype, SampleEncoding};
+use byteorder::{BigEndian, ByteOrder, NativeEndian};
+
+use super::{
+    ArbitraryHeader, ArbitraryTuplType, BitmapHeader, GraymapHeader, HeaderRecord, PixmapHeader,
+    PnmHeader, PnmSubtype, SampleEncoding,
+};
 use crate::color::{ColorType, ExtendedColorType};
 use crate::error::{
     DecodingError, ImageError, ImageResult, UnsupportedError, UnsupportedErrorKind,
 };
 use crate::image::{self, ImageDecoder, ImageFormat};
 use crate::utils;
-
-use byteorder::{BigEndian, ByteOrder, NativeEndian};
 
 /// All errors that can occur when attempting to parse a PNM
 #[derive(Debug, Clone)]

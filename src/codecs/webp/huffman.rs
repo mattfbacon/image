@@ -1,12 +1,10 @@
 use std::convert::TryInto;
 
-use super::lossless::BitReader;
-use super::lossless::DecoderError;
+use super::lossless::{BitReader, DecoderError};
 use crate::ImageResult;
 
 /// Rudimentary utility for reading Canonical Huffman Codes.
 /// Based off https://github.com/webmproject/libwebp/blob/7f8472a610b61ec780ef0a8873cd954ac512a505/src/utils/huffman.c
-///
 
 const MAX_ALLOWED_CODE_LENGTH: usize = 15;
 

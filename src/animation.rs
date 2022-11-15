@@ -127,6 +127,7 @@ impl Delay {
     ///
     /// ```
     /// use std::time::Duration;
+    ///
     /// use image::Delay;
     ///
     /// let duration = Duration::from_millis(20);

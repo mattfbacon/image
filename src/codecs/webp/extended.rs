@@ -2,17 +2,15 @@ use std::convert::TryInto;
 use std::io::{self, Cursor, Error, Read};
 use std::{error, fmt};
 
-use super::decoder::{
-    read_chunk, read_fourcc, read_len_cursor, DecoderError::ChunkHeaderInvalid, WebPRiffChunk,
-};
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use super::decoder::DecoderError::ChunkHeaderInvalid;
+use super::decoder::{read_chunk, WebPRiffChunk};
 use super::lossless::{LosslessDecoder, LosslessFrame};
 use super::vp8::{Frame as VP8Frame, Vp8Decoder};
-use crate::error::{DecodingError, ParameterError, ParameterErrorKind};
+use crate::error::DecodingError;
 use crate::image::ImageFormat;
-use crate::{
-    ColorType, Delay, Frame, Frames, ImageError, ImageResult, Rgb, RgbImage, Rgba, RgbaImage,
-};
-use byteorder::{LittleEndian, ReadBytesExt};
+use crate::{color, Delay, Frame, Frames, ImageError, ImageResult, Rgb, RgbImage, Rgba, RgbaImage};
 
 //all errors that can occur while parsing extended chunks in a WebP file
 #[derive(Debug, Clone, Copy)]
@@ -53,16 +51,15 @@ impl From<DecoderError> for ImageError {
 
 impl error::Error for DecoderError {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct WebPExtendedInfo {
     _icc_profile: bool,
-    _alpha: bool,
+    alpha: bool,
     _exif_metadata: bool,
     _xmp_metadata: bool,
     _animation: bool,
     canvas_width: u32,
     canvas_height: u32,
-    icc_profile: Option<Vec<u8>>,
 }
 
 #[derive(Debug)]
@@ -85,20 +82,12 @@ impl ExtendedImage {
         (self.info.canvas_width, self.info.canvas_height)
     }
 
-    pub(crate) fn has_animation(&self) -> bool {
-        self.info._animation
-    }
-
-    pub(crate) fn icc_profile(&self) -> Option<Vec<u8>> {
-        self.info.icc_profile.clone()
-    }
-
-    pub(crate) fn color_type(&self) -> ColorType {
-        match &self.image {
-            ExtendedImageData::Animation { frames, .. } => &frames[0].image,
-            ExtendedImageData::Static(image) => image,
+    pub(crate) fn color_type(&self) -> color::ColorType {
+        if self.info.alpha {
+            color::ColorType::Rgba8
+        } else {
+            color::ColorType::Rgb8
         }
-        .color_type()
     }
 
     pub(crate) fn into_frames<'a>(self) -> Frames<'a> {
@@ -151,15 +140,16 @@ impl ExtendedImage {
 
     pub(crate) fn read_extended_chunks<R: Read>(
         reader: &mut R,
-        mut info: WebPExtendedInfo,
+        info: WebPExtendedInfo,
     ) -> ImageResult<ExtendedImage> {
         let mut anim_info: Option<WebPAnimatedInfo> = None;
         let mut anim_frames: Vec<AnimatedFrame> = Vec::new();
         let mut static_frame: Option<WebPStatic> = None;
+
         //go until end of file and while chunk headers are valid
-        while let Some((mut cursor, chunk)) = read_extended_chunk(reader)? {
+        while let Some((mut cursor, chunk)) = read_chunk(reader)? {
             match chunk {
-                WebPRiffChunk::EXIF | WebPRiffChunk::XMP => {
+                WebPRiffChunk::ICCP | WebPRiffChunk::EXIF | WebPRiffChunk::XMP => {
                     //ignore these chunks
                 }
                 WebPRiffChunk::ANIM => {
@@ -182,11 +172,6 @@ impl ExtendedImage {
 
                         static_frame = Some(img);
                     }
-                }
-                WebPRiffChunk::ICCP => {
-                    let mut icc_profile = Vec::new();
-                    cursor.read_to_end(&mut icc_profile)?;
-                    info.icc_profile = Some(icc_profile);
                 }
                 WebPRiffChunk::VP8 => {
                     if static_frame.is_none() {
@@ -211,7 +196,7 @@ impl ExtendedImage {
         }
 
         let image = if let Some(info) = anim_info {
-            if anim_frames.is_empty() {
+            if anim_frames.len() == 0 {
                 return Err(ImageError::IoError(Error::from(
                     io::ErrorKind::UnexpectedEof,
                 )));
@@ -256,25 +241,14 @@ impl ExtendedImage {
         anim_image: &AnimatedFrame,
         background_color: Rgba<u8>,
     ) -> Option<ImageResult<Frame>> {
-        let mut buffer = vec![0; anim_image.image.get_buf_size()];
+        let mut buffer = vec![0; (anim_image.width * anim_image.height * 4) as usize];
         anim_image.image.fill_buf(&mut buffer);
-        let has_alpha = anim_image.image.has_alpha();
-        let pixel_len: u32 = anim_image.image.color_type().bytes_per_pixel().into();
 
-        'x: for x in 0..anim_image.width {
+        for x in 0..anim_image.width {
             for y in 0..anim_image.height {
                 let canvas_index: (u32, u32) = (x + anim_image.offset_x, y + anim_image.offset_y);
-                // Negative offsets are not possible due to unsigned ints
-                // If we go out of bounds by height, still continue by x
-                if canvas_index.1 >= canvas.height() {
-                    continue 'x;
-                }
-                // If we go out of bounds by width, it doesn't make sense to continue at all
-                if canvas_index.0 >= canvas.width() {
-                    break 'x;
-                }
-                let index: usize = ((y * anim_image.width + x) * pixel_len).try_into().unwrap();
-                canvas[canvas_index] = if anim_image.use_alpha_blending && has_alpha {
+                let index: usize = (y * 4 * anim_image.width + x * 4).try_into().unwrap();
+                canvas[canvas_index] = if anim_image.use_alpha_blending {
                     let buffer: [u8; 4] = buffer[index..][..4].try_into().unwrap();
                     ExtendedImage::do_alpha_blending(buffer, canvas[canvas_index])
                 } else {
@@ -282,7 +256,7 @@ impl ExtendedImage {
                         buffer[index],
                         buffer[index + 1],
                         buffer[index + 2],
-                        if has_alpha { buffer[index + 3] } else { 255 },
+                        buffer[index + 3],
                     ])
                 };
             }
@@ -334,23 +308,9 @@ impl ExtendedImage {
 
     pub(crate) fn fill_buf(&self, buf: &mut [u8]) {
         match &self.image {
-            // will always have at least one frame
-            ExtendedImageData::Animation { frames, anim_info } => {
-                let first_frame = &frames[0];
-                let (canvas_width, canvas_height) = self.dimensions();
-                if canvas_width == first_frame.width && canvas_height == first_frame.height {
-                    first_frame.image.fill_buf(buf);
-                } else {
-                    let bg_color = match &self.info._alpha {
-                        true => Rgba::from([0, 0, 0, 0]),
-                        false => anim_info.background_color,
-                    };
-                    let mut canvas = RgbaImage::from_pixel(canvas_width, canvas_height, bg_color);
-                    let _ = ExtendedImage::draw_subimage(&mut canvas, first_frame, bg_color)
-                        .unwrap()
-                        .unwrap();
-                    buf.copy_from_slice(canvas.into_raw().as_slice());
-                }
+            ExtendedImageData::Animation { frames, .. } => {
+                //will always have at least one frame
+                frames[0].image.fill_buf(buf);
             }
             ExtendedImageData::Static(image) => {
                 image.fill_buf(buf);
@@ -360,24 +320,11 @@ impl ExtendedImage {
 
     pub(crate) fn get_buf_size(&self) -> usize {
         match &self.image {
-            // will always have at least one frame
-            ExtendedImageData::Animation { frames, .. } => &frames[0].image,
-            ExtendedImageData::Static(image) => image,
-        }
-        .get_buf_size()
-    }
-
-    pub(crate) fn set_background_color(&mut self, color: Rgba<u8>) -> ImageResult<()> {
-        match &mut self.image {
-            ExtendedImageData::Animation { anim_info, .. } => {
-                anim_info.background_color = color;
-                Ok(())
+            ExtendedImageData::Animation { frames, .. } => {
+                //will always have at least one frame
+                frames[0].image.get_buf_size()
             }
-            _ => Err(ImageError::Parameter(ParameterError::from_kind(
-                ParameterErrorKind::Generic(
-                    "Background color can only be set on animated webp".to_owned(),
-                ),
-            ))),
+            ExtendedImageData::Static(image) => image.get_buf_size(),
         }
     }
 }
@@ -529,21 +476,6 @@ impl WebPStatic {
             WebPStatic::Lossless(lossless) => lossless.get_buf_size(),
         }
     }
-
-    pub(crate) fn color_type(&self) -> ColorType {
-        if self.has_alpha() {
-            ColorType::Rgba8
-        } else {
-            ColorType::Rgb8
-        }
-    }
-
-    pub(crate) fn has_alpha(&self) -> bool {
-        match self {
-            Self::LossyWithAlpha(..) | Self::Lossless(..) => true,
-            Self::LossyWithoutAlpha(..) => false,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -562,24 +494,6 @@ struct AnimatedFrame {
     use_alpha_blending: bool,
     dispose: bool,
     image: WebPStatic,
-}
-
-/// Reads a chunk, but silently ignores unknown chunks at the end of a file
-fn read_extended_chunk<R>(r: &mut R) -> ImageResult<Option<(Cursor<Vec<u8>>, WebPRiffChunk)>>
-where
-    R: Read,
-{
-    let mut unknown_chunk = Ok(());
-
-    while let Some(chunk) = read_fourcc(r)? {
-        let cursor = read_len_cursor(r)?;
-        match chunk {
-            Ok(chunk) => return unknown_chunk.and(Ok(Some((cursor, chunk)))),
-            Err(err) => unknown_chunk = unknown_chunk.and(Err(err)),
-        }
-    }
-
-    Ok(None)
 }
 
 pub(crate) fn read_extended_header<R: Read>(reader: &mut R) -> ImageResult<WebPExtendedInfo> {
@@ -620,13 +534,12 @@ pub(crate) fn read_extended_header<R: Read>(reader: &mut R) -> ImageResult<WebPE
 
     let info = WebPExtendedInfo {
         _icc_profile: icc_profile,
-        _alpha: alpha,
+        alpha,
         _exif_metadata: exif_metadata,
         _xmp_metadata: xmp_metadata,
         _animation: animation,
         canvas_width,
         canvas_height,
-        icc_profile: None,
     };
 
     Ok(info)

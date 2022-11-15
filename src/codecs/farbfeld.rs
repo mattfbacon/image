@@ -313,10 +313,12 @@ impl<W: Write> ImageEncoder for FarbfeldEncoder<W> {
 
 #[cfg(test)]
 mod tests {
+    use std::io::{Cursor, Seek, SeekFrom};
+
+    use byteorder::{ByteOrder, NativeEndian};
+
     use crate::codecs::farbfeld::FarbfeldDecoder;
     use crate::ImageDecoderRect;
-    use byteorder::{ByteOrder, NativeEndian};
-    use std::io::{Cursor, Seek, SeekFrom};
 
     static RECTANGLE_IN: &[u8] =     b"farbfeld\
                                        \x00\x00\x00\x02\x00\x00\x00\x03\

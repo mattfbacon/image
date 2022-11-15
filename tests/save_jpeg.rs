@@ -2,8 +2,9 @@
 #![cfg(all(feature = "jpeg", feature = "tiff"))]
 extern crate image;
 
-use image::{ImageFormat, ImageOutputFormat};
 use std::io::Cursor;
+
+use image::{ImageFormat, ImageOutputFormat};
 
 #[test]
 fn jqeg_qualitys() {

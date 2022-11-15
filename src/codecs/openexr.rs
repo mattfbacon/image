@@ -20,6 +20,9 @@
 //!     - meta data is lost
 //!     - dwaa/dwab compressed images not supported yet by the exr library
 //!     - (chroma) subsampling not supported yet by the exr library
+use std::convert::TryInto;
+use std::io::{Cursor, Read, Seek, Write};
+
 use exr::prelude::*;
 
 use crate::error::{DecodingError, EncodingError, ImageFormatHint};
@@ -28,7 +31,6 @@ use crate::{
     ColorType, ExtendedColorType, ImageDecoder, ImageEncoder, ImageError, ImageFormat, ImageResult,
     Progress,
 };
-use std::io::{Cursor, Read, Seek, Write};
 
 /// An OpenEXR decoder. Immediately reads the meta data from the file.
 #[derive(Debug)]
@@ -271,7 +273,14 @@ fn write_buffer(
         }
     }
 
-    let bytes_per_pixel = color_type.bytes_per_pixel() as usize;
+    // bytes might be unaligned so we cannot cast the whole thing, instead lookup each f32 individually
+    let lookup_f32 = move |f32_index: usize| {
+        let unaligned_f32_bytes_slice = &unaligned_bytes[f32_index * 4..(f32_index + 1) * 4];
+        let f32_bytes_array = unaligned_f32_bytes_slice
+            .try_into()
+            .expect("indexing error");
+        f32::from_ne_bytes(f32_bytes_array)
+    };
 
     match color_type {
         ColorType::Rgb32F => {
@@ -279,14 +288,12 @@ fn write_buffer(
                 ::from_channels(
                 (width, height),
                 SpecificChannels::rgb(|pixel: Vec2<usize>| {
-                    let pixel_index = pixel.flat_index_for_size(Vec2(width, height));
-                    let start_byte = pixel_index * bytes_per_pixel;
-
-                    let [r, g, b]: [f32; 3] = bytemuck::pod_read_unaligned(
-                        &unaligned_bytes[start_byte..start_byte + bytes_per_pixel],
-                    );
-
-                    (r, g, b)
+                    let pixel_index = 3 * pixel.flat_index_for_size(Vec2(width, height));
+                    (
+                        lookup_f32(pixel_index),
+                        lookup_f32(pixel_index + 1),
+                        lookup_f32(pixel_index + 2),
+                    )
                 }),
             )
             .write()
@@ -300,14 +307,13 @@ fn write_buffer(
                 ::from_channels(
                 (width, height),
                 SpecificChannels::rgba(|pixel: Vec2<usize>| {
-                    let pixel_index = pixel.flat_index_for_size(Vec2(width, height));
-                    let start_byte = pixel_index * bytes_per_pixel;
-
-                    let [r, g, b, a]: [f32; 4] = bytemuck::pod_read_unaligned(
-                        &unaligned_bytes[start_byte..start_byte + bytes_per_pixel],
-                    );
-
-                    (r, g, b, a)
+                    let pixel_index = 4 * pixel.flat_index_for_size(Vec2(width, height));
+                    (
+                        lookup_f32(pixel_index),
+                        lookup_f32(pixel_index + 1),
+                        lookup_f32(pixel_index + 2),
+                        lookup_f32(pixel_index + 3),
+                    )
                 }),
             )
             .write()
@@ -350,8 +356,9 @@ where
 {
     /// Writes the complete image.
     ///
-    /// Assumes the writer is buffered. In most cases, you should wrap your writer in a `BufWriter`
-    /// for best performance.
+    /// Returns an Error if it has an invalid length.
+    /// Assumes the writer is buffered. In most cases,
+    /// you should wrap your writer in a `BufWriter` for best performance.
     fn write_image(
         self,
         buf: &[u8],
@@ -359,11 +366,6 @@ where
         height: u32,
         color_type: ColorType,
     ) -> ImageResult<()> {
-        assert_eq!(
-            (width as u64 * height as u64).saturating_mul(color_type.bytes_per_pixel() as u64),
-            buf.len() as u64
-        );
-
         write_buffer(self.0, buf, width, height, color_type)
     }
 }
@@ -377,11 +379,10 @@ fn to_image_err(exr_error: Error) -> ImageError {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
 
+    use super::*;
     use crate::buffer_::{Rgb32FImage, Rgba32FImage};
     use crate::error::{LimitError, LimitErrorKind};
     use crate::{ImageBuffer, Rgb, Rgba};
@@ -467,7 +468,7 @@ mod test {
                 .join("overexposed gradient - data window equals display window.exr");
 
             let hdr: Vec<Rgb<f32>> = crate::codecs::hdr::HdrDecoder::new(std::io::BufReader::new(
-                std::fs::File::open(reference_path).unwrap(),
+                std::fs::File::open(&reference_path).unwrap(),
             ))
             .unwrap()
             .read_image_hdr()
@@ -496,7 +497,7 @@ mod test {
 
     #[test]
     fn roundtrip_rgba() {
-        let mut next_random = vec![1.0, 0.0, -1.0, -3.15, 27.0, 11.0, 31.0]
+        let mut next_random = vec![1.0, 0.0, -1.0, -3.14, 27.0, 11.0, 31.0]
             .into_iter()
             .cycle();
         let mut next_random = move || next_random.next().unwrap();
@@ -514,7 +515,7 @@ mod test {
 
     #[test]
     fn roundtrip_rgb() {
-        let mut next_random = vec![1.0, 0.0, -1.0, -3.15, 27.0, 11.0, 31.0]
+        let mut next_random = vec![1.0, 0.0, -1.0, -3.14, 27.0, 11.0, 31.0]
             .into_iter()
             .cycle();
         let mut next_random = move || next_random.next().unwrap();

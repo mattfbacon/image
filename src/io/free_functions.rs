@@ -4,18 +4,14 @@ use std::path::Path;
 use std::u32;
 
 use crate::codecs::*;
-
 use crate::dynimage::DynamicImage;
-use crate::error::{ImageError, ImageFormatHint, ImageResult};
-use crate::image;
+use crate::error::{
+    ImageError, ImageFormatHint, ImageResult, UnsupportedError, UnsupportedErrorKind,
+};
 use crate::image::ImageFormat;
 #[allow(unused_imports)] // When no features are supported
 use crate::image::{ImageDecoder, ImageEncoder};
-use crate::{
-    color,
-    error::{UnsupportedError, UnsupportedErrorKind},
-    ImageOutputFormat,
-};
+use crate::{color, image, ImageOutputFormat};
 
 pub(crate) fn open_impl(path: &Path) -> ImageResult<DynamicImage> {
     let buffered_read = BufReader::new(File::open(path).map_err(ImageError::IoError)?);
@@ -268,7 +264,7 @@ static MAGIC_BYTES: [(&[u8], ImageFormat); 23] = [
     (&[0xff, 0xd8, 0xff], ImageFormat::Jpeg),
     (b"GIF89a", ImageFormat::Gif),
     (b"GIF87a", ImageFormat::Gif),
-    (b"RIFF", ImageFormat::WebP), // TODO: better magic byte detection, see https://github.com/image-rs/image/issues/660
+    (b"RIFF", ImageFormat::WebP), /* TODO: better magic byte detection, see https://github.com/image-rs/image/issues/660 */
     (b"MM\x00*", ImageFormat::Tiff),
     (b"II*\x00", ImageFormat::Tiff),
     (b"DDS ", ImageFormat::Dds),

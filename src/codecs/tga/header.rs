@@ -1,9 +1,9 @@
-use crate::{
-    error::{UnsupportedError, UnsupportedErrorKind},
-    ColorType, ImageError, ImageFormat, ImageResult,
-};
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Read, Write};
+
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+
+use crate::error::{UnsupportedError, UnsupportedErrorKind};
+use crate::{ColorType, ImageError, ImageFormat, ImageResult};
 
 pub(crate) const ALPHA_BIT_MASK: u8 = 0b1111;
 pub(crate) const SCREEN_ORIGIN_BIT_MASK: u8 = 0b10_0000;
@@ -42,10 +42,10 @@ impl ImageType {
     /// Check if the image format uses colors as opposed to gray scale.
     pub(crate) fn is_color(&self) -> bool {
         matches! { *self,
-            ImageType::RawColorMap
-            | ImageType::RawTrueColor
-            | ImageType::RunTrueColor
-            | ImageType::RunColorMap
+                ImageType::RawColorMap
+                | ImageType::RawTrueColor
+                | ImageType::RunTrueColor
+                | ImageType::RunColorMap
         }
     }
 

@@ -1,5 +1,3 @@
-use crate::Primitive;
-use num_traits::identities::Zero;
 #[cfg(test)]
 use std::borrow::Cow;
 use std::convert::TryFrom;
@@ -10,12 +8,16 @@ use std::num::{ParseFloatError, ParseIntError};
 use std::path::Path;
 use std::{error, fmt, mem};
 
+use num_traits::identities::Zero;
+use scoped_threadpool::Pool;
+
 use crate::color::{ColorType, Rgb};
 use crate::error::{
     DecodingError, ImageError, ImageFormatHint, ImageResult, ParameterError, ParameterErrorKind,
     UnsupportedError, UnsupportedErrorKind,
 };
 use crate::image::{self, ImageDecoder, ImageDecoderRect, ImageFormat, Progress};
+use crate::Primitive;
 
 /// Errors that can occur during decoding and parsing of a HDR image
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,7 +125,7 @@ impl fmt::Display for LineType {
     }
 }
 
-/// Adapter to conform to `ImageDecoder` trait
+/// Adapter to conform to ```ImageDecoder``` trait
 #[derive(Debug)]
 pub struct HdrAdapter<R: Read> {
     inner: Option<HdrDecoder<R>>,
@@ -257,13 +259,13 @@ pub struct Rgbe8Pixel {
     pub e: u8,
 }
 
-/// Creates `Rgbe8Pixel` from components
+/// Creates ```Rgbe8Pixel``` from components
 pub fn rgbe8(r: u8, g: u8, b: u8, e: u8) -> Rgbe8Pixel {
     Rgbe8Pixel { c: [r, g, b], e }
 }
 
 impl Rgbe8Pixel {
-    /// Converts `Rgbe8Pixel` into `Rgb<f32>` linearly
+    /// Converts ```Rgbe8Pixel``` into ```Rgb<f32>``` linearly
     #[inline]
     pub fn to_hdr(self) -> Rgb<f32> {
         if self.e == 0 {
@@ -279,25 +281,25 @@ impl Rgbe8Pixel {
         }
     }
 
-    /// Converts `Rgbe8Pixel` into `Rgb<T>` with scale=1 and gamma=2.2
+    /// Converts ```Rgbe8Pixel``` into ```Rgb<T>``` with scale=1 and gamma=2.2
     ///
     /// color_ldr = (color_hdr*scale)<sup>gamma</sup>
     ///
     /// # Panic
     ///
-    /// Panics when `T::max_value()` cannot be represented as f32.
+    /// Panics when ```T::max_value()``` cannot be represented as f32.
     #[inline]
     pub fn to_ldr<T: Primitive + Zero>(self) -> Rgb<T> {
         self.to_ldr_scale_gamma(1.0, 2.2)
     }
 
-    /// Converts `Rgbe8Pixel` into `Rgb<T>` using provided scale and gamma
+    /// Converts Rgbe8Pixel into Rgb<T> using provided scale and gamma
     ///
     /// color_ldr = (color_hdr*scale)<sup>gamma</sup>
     ///
     /// # Panic
     ///
-    /// Panics when `T::max_value()` cannot be represented as f32.
+    /// Panics when T::max_value() cannot be represented as f32.
     /// Panics when scale or gamma is NaN
     #[inline]
     pub fn to_ldr_scale_gamma<T: Primitive + Zero>(self, scale: f32, gamma: f32) -> Rgb<T> {
@@ -328,15 +330,15 @@ impl Rgbe8Pixel {
 }
 
 impl<R: BufRead> HdrDecoder<R> {
-    /// Reads Radiance HDR image header from stream `r`
+    /// Reads Radiance HDR image header from stream ```r```
     /// if the header is valid, creates HdrDecoder
     /// strict mode is enabled
     pub fn new(reader: R) -> ImageResult<HdrDecoder<R>> {
         HdrDecoder::with_strictness(reader, true)
     }
 
-    /// Reads Radiance HDR image header from stream `reader`,
-    /// if the header is valid, creates `HdrDecoder`.
+    /// Reads Radiance HDR image header from stream ```reader```,
+    /// if the header is valid, creates ```HdrDecoder```.
     ///
     /// strict enables strict mode
     ///
@@ -422,7 +424,7 @@ impl<R: BufRead> HdrDecoder<R> {
         })
     } // end with_strictness
 
-    /// Returns file metadata. Refer to `HdrMetadata` for details.
+    /// Returns file metadata. Refer to ```HdrMetadata``` for details.
     pub fn metadata(&self) -> HdrMetadata {
         self.meta.clone()
     }
@@ -459,20 +461,25 @@ impl<R: BufRead> HdrDecoder<R> {
         }
 
         let chunks_iter = output_slice.chunks_mut(self.width as usize);
+        let mut pool = Pool::new(8); //
 
-        let mut buf = vec![Default::default(); self.width as usize];
-        for chunk in chunks_iter {
-            // read_scanline overwrites the entire buffer or returns an Err,
-            // so not resetting the buffer here is ok.
-            read_scanline(&mut self.r, &mut buf[..])?;
-            for (dst, &pix) in chunk.iter_mut().zip(buf.iter()) {
-                *dst = f(pix);
+        (pool.scoped(|scope| {
+            for chunk in chunks_iter {
+                let mut buf = vec![Default::default(); self.width as usize];
+                read_scanline(&mut self.r, &mut buf[..])?;
+                let f = &f;
+                scope.execute(move || {
+                    for (dst, &pix) in chunk.iter_mut().zip(buf.iter()) {
+                        *dst = f(pix);
+                    }
+                });
             }
-        }
+            Ok(())
+        }) as Result<(), ImageError>)?;
         Ok(())
     }
 
-    /// Consumes decoder and returns a vector of `Rgb<u8>` pixels.
+    /// Consumes decoder and returns a vector of Rgb<u8> pixels.
     /// scale = 1, gamma = 2.2
     pub fn read_image_ldr(self) -> ImageResult<Vec<Rgb<u8>>> {
         let mut ret = vec![Rgb([0, 0, 0]); self.width as usize * self.height as usize];
@@ -480,8 +487,7 @@ impl<R: BufRead> HdrDecoder<R> {
         Ok(ret)
     }
 
-    /// Consumes decoder and returns a vector of `Rgb<f32>` pixels.
-    ///
+    /// Consumes decoder and returns a vector of Rgb<f32> pixels.
     pub fn read_image_hdr(self) -> ImageResult<Vec<Rgb<f32>>> {
         let mut ret = vec![Rgb([0.0, 0.0, 0.0]); self.width as usize * self.height as usize];
         self.read_image_transform(|pix| pix.to_hdr(), &mut ret[..])?;
@@ -998,9 +1004,10 @@ fn read_line_u8_test() {
 
 /// Helper function for reading raw 3-channel f32 images
 pub fn read_raw_file<P: AsRef<Path>>(path: P) -> ::std::io::Result<Vec<Rgb<f32>>> {
-    use byteorder::{LittleEndian as LE, ReadBytesExt};
     use std::fs::File;
     use std::io::BufReader;
+
+    use byteorder::{LittleEndian as LE, ReadBytesExt};
 
     let mut r = BufReader::new(File::open(path)?);
     let w = r.read_u32::<LE>()? as usize;
@@ -1020,8 +1027,9 @@ pub fn read_raw_file<P: AsRef<Path>>(path: P) -> ::std::io::Result<Vec<Rgb<f32>>
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use std::io::Cursor;
+
+    use super::*;
 
     #[test]
     fn dimension_overflow() {

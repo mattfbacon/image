@@ -8,9 +8,9 @@ pub use self::decoder::PnmDecoder;
 pub use self::encoder::PnmEncoder;
 use self::header::HeaderRecord;
 pub use self::header::{
-    ArbitraryHeader, ArbitraryTuplType, BitmapHeader, GraymapHeader, PixmapHeader,
+    ArbitraryHeader, ArbitraryTuplType, BitmapHeader, GraymapHeader, PixmapHeader, PnmHeader,
+    PnmSubtype, SampleEncoding,
 };
-pub use self::header::{PnmHeader, PnmSubtype, SampleEncoding};
 
 mod autobreak;
 mod decoder;
@@ -19,10 +19,11 @@ mod header;
 
 #[cfg(test)]
 mod tests {
+    use byteorder::{ByteOrder, NativeEndian};
+
     use super::*;
     use crate::color::ColorType;
     use crate::image::ImageDecoder;
-    use byteorder::{ByteOrder, NativeEndian};
 
     fn execute_roundtrip_default(buffer: &[u8], width: u32, height: u32, color: ColorType) {
         let mut encoded_buffer = Vec::new();

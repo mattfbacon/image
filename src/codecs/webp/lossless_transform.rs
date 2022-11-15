@@ -1,8 +1,4 @@
-use std::convert::TryFrom;
-use std::convert::TryInto;
-
-use super::lossless::subsample_size;
-use super::lossless::DecoderError;
+use super::lossless::{subsample_size, DecoderError};
 
 #[derive(Debug, Clone)]
 pub(crate) enum TransformType {

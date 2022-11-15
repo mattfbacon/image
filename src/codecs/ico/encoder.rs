@@ -1,12 +1,12 @@
-use byteorder::{LittleEndian, WriteBytesExt};
 use std::borrow::Cow;
 use std::io::{self, Write};
 
+use byteorder::{LittleEndian, WriteBytesExt};
+
+use crate::codecs::png::PngEncoder;
 use crate::color::ColorType;
 use crate::error::{ImageError, ImageResult, ParameterError, ParameterErrorKind};
 use crate::image::ImageEncoder;
-
-use crate::codecs::png::PngEncoder;
 
 // Enum value indicating an ICO image (as opposed to a CUR image):
 const ICO_IMAGE_TYPE: u16 = 1;

@@ -2,8 +2,9 @@
 
 // Note copied from the stdlib under MIT license
 
-use num_traits::{Bounded, Num, NumCast};
 use std::ops::AddAssign;
+
+use num_traits::{Bounded, Num, NumCast};
 
 use crate::color::{ColorType, Luma, LumaA, Rgb, Rgba};
 
