@@ -140,7 +140,7 @@ impl<W: Write> AvifEncoder<W> {
                     ParameterErrorKind::DimensionMismatch,
                 ))
             })
-        };
+        }
 
         // Convert to target color type using few buffer allocations.
         fn convert_into<'buf, P>(
