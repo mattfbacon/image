@@ -11,7 +11,6 @@
 //! * [VP8.pdf](http://static.googleusercontent.com/media/research.google.com/en//pubs/archive/37073.pdf) - An overview of
 //! of the VP8 format
 
-use std::convert::TryInto;
 use std::default::Default;
 use std::io::Read;
 use std::{cmp, error, fmt};

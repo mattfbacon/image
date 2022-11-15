@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::io::{self, Read, Seek};
 use std::mem;
 

@@ -1,5 +1,4 @@
 use std::cmp::{self, Ordering};
-use std::convert::TryFrom;
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 use std::iter::{repeat, Iterator, Rev};
 use std::marker::PhantomData;
