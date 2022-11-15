@@ -75,15 +75,15 @@ default = [
 	"openexr",
 ]
 
+bmp = []
+dds = ["dxt"]
+dxt = []
+farbfeld = []
+hdr = ["scoped_threadpool"]
 ico = ["bmp", "png"]
+openexr = ["exr"]
 pnm = []
 tga = []
-bmp = []
-hdr = ["scoped_threadpool"]
-dxt = []
-dds = ["dxt"]
-farbfeld = []
-openexr = ["exr"]
 
 # Enables WebP decoder support.
 webp = []
