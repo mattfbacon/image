@@ -85,6 +85,7 @@ hdr = ["scoped_threadpool"]
 ico = ["bmp", "png"]
 openexr = ["exr"]
 pnm = []
+qoi = ["dep:qoi"]
 tga = []
 
 # Enables WebP decoder support.
