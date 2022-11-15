@@ -83,7 +83,7 @@ pub enum DynamicImage {
 }
 
 macro_rules! dynamic_map(
-        ($dynimage: expr, $image: pat => $action: expr) => ({
+        ($dynimage: expr, $image: ident => $action: expr) => ({
             use DynamicImage::*;
             match $dynimage {
                 ImageLuma8($image) => ImageLuma8($action),
@@ -99,7 +99,7 @@ macro_rules! dynamic_map(
             }
         });
 
-        ($dynimage: expr, |$image: pat| $action: expr) => (
+        ($dynimage: expr, |$image: ident| $action: expr) => (
             match $dynimage {
                 DynamicImage::ImageLuma8($image) => $action,
                 DynamicImage::ImageLumaA8($image) => $action,
@@ -175,62 +175,62 @@ impl DynamicImage {
 
     /// Returns a copy of this image as an RGB image.
     pub fn to_rgb8(&self) -> RgbImage {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as an RGB image.
     pub fn to_rgb16(&self) -> Rgb16Image {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as an RGB image.
     pub fn to_rgb32f(&self) -> Rgb32FImage {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as an RGBA image.
     pub fn to_rgba8(&self) -> RgbaImage {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as an RGBA image.
     pub fn to_rgba16(&self) -> Rgba16Image {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as an RGBA image.
     pub fn to_rgba32f(&self) -> Rgba32FImage {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as a Luma image.
     pub fn to_luma8(&self) -> GrayImage {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as a Luma image.
     pub fn to_luma16(&self) -> Gray16Image {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as a Luma image.
     pub fn to_luma32f(&self) -> ImageBuffer<Luma<f32>, Vec<f32>> {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as a LumaA image.
     pub fn to_luma_alpha8(&self) -> GrayAlphaImage {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as a LumaA image.
     pub fn to_luma_alpha16(&self) -> GrayAlpha16Image {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Returns a copy of this image as a LumaA image.
     pub fn to_luma_alpha32f(&self) -> ImageBuffer<LumaA<f32>, Vec<f32>> {
-        dynamic_map!(*self, |ref p| p.convert())
+        dynamic_map!(self, |p| p.convert())
     }
 
     /// Consume the image and returns a RGB image.
@@ -348,12 +348,12 @@ impl DynamicImage {
     /// Note: this method does *not* modify the object,
     /// and its signature will be replaced with `crop_imm()`'s in the 0.24 release
     pub fn crop(&mut self, x: u32, y: u32, width: u32, height: u32) -> DynamicImage {
-        dynamic_map!(*self, ref mut p => imageops::crop(p, x, y, width, height).to_image())
+        dynamic_map!(self, p => imageops::crop(p, x, y, width, height).to_image())
     }
 
     /// Return a cut-out of this image delimited by the bounding rectangle.
     pub fn crop_imm(&self, x: u32, y: u32, width: u32, height: u32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::crop_imm(p, x, y, width, height).to_image())
+        dynamic_map!(self, p => imageops::crop_imm(p, x, y, width, height).to_image())
     }
 
     /// Return a reference to an 8bit RGB image
@@ -550,7 +550,7 @@ impl DynamicImage {
     /// Return this image's pixels as a native endian byte slice.
     pub fn as_bytes(&self) -> &[u8] {
         // we can do this because every variant contains an `ImageBuffer<_, Vec<_>>`
-        dynamic_map!(*self, |ref image_buffer| bytemuck::cast_slice(
+        dynamic_map!(self, |image_buffer| bytemuck::cast_slice(
             image_buffer.as_raw().as_ref()
         ))
     }
@@ -558,7 +558,7 @@ impl DynamicImage {
     // TODO: choose a name under which to expose?
     fn inner_bytes(&self) -> &[u8] {
         // we can do this because every variant contains an `ImageBuffer<_, Vec<_>>`
-        dynamic_map!(*self, |ref image_buffer| bytemuck::cast_slice(
+        dynamic_map!(self, |image_buffer| bytemuck::cast_slice(
             image_buffer.inner_pixels()
         ))
     }
@@ -611,12 +611,12 @@ impl DynamicImage {
 
     /// Returns the width of the underlying image
     pub fn width(&self) -> u32 {
-        dynamic_map!(*self, |ref p| { p.width() })
+        dynamic_map!(self, |p| p.width())
     }
 
     /// Returns the height of the underlying image
     pub fn height(&self) -> u32 {
-        dynamic_map!(*self, |ref p| { p.height() })
+        dynamic_map!(self, |p| p.height())
     }
 
     /// Return a grayscale version of this image.
@@ -652,7 +652,7 @@ impl DynamicImage {
     /// Invert the colors of this image.
     /// This method operates inplace.
     pub fn invert(&mut self) {
-        dynamic_map!(*self, |ref mut p| imageops::invert(p))
+        dynamic_map!(self, |p| imageops::invert(p))
     }
 
     /// Resize this image using the specified filter algorithm.
@@ -678,7 +678,7 @@ impl DynamicImage {
         nheight: u32,
         filter: imageops::FilterType,
     ) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::resize(p, nwidth, nheight, filter))
+        dynamic_map!(self, p => imageops::resize(p, nwidth, nheight, filter))
     }
 
     /// Scale this image down to fit within a specific size.
@@ -702,7 +702,7 @@ impl DynamicImage {
     /// pixel contributes to exactly one target pixel.
     /// May give aliasing artifacts if new size is close to old size.
     pub fn thumbnail_exact(&self, nwidth: u32, nheight: u32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::thumbnail(p, nwidth, nheight))
+        dynamic_map!(self, p => imageops::thumbnail(p, nwidth, nheight))
     }
 
     /// Resize this image using the specified filter algorithm.
@@ -735,7 +735,7 @@ impl DynamicImage {
     /// Performs a Gaussian blur on this image.
     /// `sigma` is a measure of how much to blur by.
     pub fn blur(&self, sigma: f32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::blur(p, sigma))
+        dynamic_map!(self, p => imageops::blur(p, sigma))
     }
 
     /// Performs an unsharpen mask on this image.
@@ -744,7 +744,7 @@ impl DynamicImage {
     ///
     /// See <https://en.wikipedia.org/wiki/Unsharp_masking#Digital_unsharp_masking>
     pub fn unsharpen(&self, sigma: f32, threshold: i32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::unsharpen(p, sigma, threshold))
+        dynamic_map!(self, p => imageops::unsharpen(p, sigma, threshold))
     }
 
     /// Filters this image with the specified 3x3 kernel.
@@ -753,21 +753,21 @@ impl DynamicImage {
             panic!("filter must be 3 x 3")
         }
 
-        dynamic_map!(*self, ref p => imageops::filter3x3(p, kernel))
+        dynamic_map!(self, p => imageops::filter3x3(p, kernel))
     }
 
     /// Adjust the contrast of this image.
     /// `contrast` is the amount to adjust the contrast by.
     /// Negative values decrease the contrast and positive values increase the contrast.
     pub fn adjust_contrast(&self, c: f32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::contrast(p, c))
+        dynamic_map!(self, p => imageops::contrast(p, c))
     }
 
     /// Brighten the pixels of this image.
     /// `value` is the amount to brighten each pixel by.
     /// Negative values decrease the brightness and positive values increase it.
     pub fn brighten(&self, value: i32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::brighten(p, value))
+        dynamic_map!(self, p => imageops::brighten(p, value))
     }
 
     /// Hue rotate the supplied image.
@@ -775,32 +775,32 @@ impl DynamicImage {
     /// 0 and 360 do nothing, the rest rotates by the given degree value.
     /// just like the css webkit filter hue-rotate(180)
     pub fn huerotate(&self, value: i32) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::huerotate(p, value))
+        dynamic_map!(self, p => imageops::huerotate(p, value))
     }
 
     /// Flip this image vertically
     pub fn flipv(&self) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::flip_vertical(p))
+        dynamic_map!(self, p => imageops::flip_vertical(p))
     }
 
     /// Flip this image horizontally
     pub fn fliph(&self) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::flip_horizontal(p))
+        dynamic_map!(self, p => imageops::flip_horizontal(p))
     }
 
     /// Rotate this image 90 degrees clockwise.
     pub fn rotate90(&self) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::rotate90(p))
+        dynamic_map!(self, p => imageops::rotate90(p))
     }
 
     /// Rotate this image 180 degrees clockwise.
     pub fn rotate180(&self) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::rotate180(p))
+        dynamic_map!(self, p => imageops::rotate180(p))
     }
 
     /// Rotate this image 270 degrees clockwise.
     pub fn rotate270(&self) -> DynamicImage {
-        dynamic_map!(*self, ref p => imageops::rotate270(p))
+        dynamic_map!(self, p => imageops::rotate270(p))
     }
 
     /// Encode this image and write it to ```w```.
@@ -859,7 +859,7 @@ impl DynamicImage {
     where
         Q: AsRef<Path>,
     {
-        dynamic_map!(*self, |ref p| p.save(path))
+        dynamic_map!(self, |p| p.save(path))
     }
 
     /// Saves the buffer to a file at the specified path in
@@ -871,7 +871,7 @@ impl DynamicImage {
     where
         Q: AsRef<Path>,
     {
-        dynamic_map!(*self, |ref p| p.save_with_format(path, format))
+        dynamic_map!(self, |p| p.save_with_format(path, format))
     }
 }
 
@@ -952,15 +952,15 @@ impl GenericImageView for DynamicImage {
     type Pixel = color::Rgba<u8>; // TODO use f32 as default for best precision and unbounded color?
 
     fn dimensions(&self) -> (u32, u32) {
-        dynamic_map!(*self, |ref p| p.dimensions())
+        dynamic_map!(self, |p| p.dimensions())
     }
 
     fn bounds(&self) -> (u32, u32, u32, u32) {
-        dynamic_map!(*self, |ref p| p.bounds())
+        dynamic_map!(self, |p| p.bounds())
     }
 
     fn get_pixel(&self, x: u32, y: u32) -> color::Rgba<u8> {
-        dynamic_map!(*self, |ref p| p.get_pixel(x, y).to_rgba().into_color())
+        dynamic_map!(self, |p| p.get_pixel(x, y).to_rgba().into_color())
     }
 }
 
