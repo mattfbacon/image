@@ -240,6 +240,8 @@ pub mod codecs {
     pub mod tiff;
     #[cfg(any(feature = "webp", feature = "webp-encoder"))]
     pub mod webp;
+    #[cfg(feature = "qoi")]
+    pub mod qoi;
 }
 
 mod animation;
