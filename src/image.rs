@@ -308,13 +308,13 @@ pub enum ImageOutputFormat {
     /// An image in AVIF Format
     Avif,
 
-    #[cfg(feature = "webp-encoder")]
-    /// An image in WebP Format.
-    WebP,
-
     #[cfg(feature = "qoi")]
     /// An image in QOI Format
     Qoi,
+
+    #[cfg(feature = "webp-encoder")]
+    /// An image in WebP Format.
+    WebP,
 
     /// A value for signalling an error: An unsupported format was requested
     // Note: When TryFrom is stabilized, this value should not be needed, and

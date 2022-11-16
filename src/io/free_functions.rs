@@ -241,13 +241,13 @@ pub(crate) fn write_buffer_impl<W: std::io::Write + Seek>(
         ImageOutputFormat::Avif => {
             avif::AvifEncoder::new(buffered_write).write_image(buf, width, height, color)
         }
-        #[cfg(feature = "webp-encoder")]
-        ImageOutputFormat::WebP => {
-            webp::WebPEncoder::new(buffered_write).write_image(buf, width, height, color)
-        }
         #[cfg(feature = "qoi")]
         ImageOutputFormat::Qoi => {
             qoi::QoiEncoder::new(buffered_write).write_image(buf, width, height, color)
+        }
+        #[cfg(feature = "webp-encoder")]
+        ImageOutputFormat::WebP => {
+            webp::WebPEncoder::new(buffered_write).write_image(buf, width, height, color)
         }
 
         image::ImageOutputFormat::Unsupported(msg) => Err(ImageError::Unsupported(
