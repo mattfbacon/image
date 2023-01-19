@@ -26,41 +26,33 @@ pub struct AvifDecoder<R> {
     inner: PhantomData<R>,
     picture: dav1d::Picture,
     alpha_picture: Option<dav1d::Picture>,
-    icc_profile: Option<Vec<u8>>,
 }
 
 impl<R: Read> AvifDecoder<R> {
     /// Create a new decoder that reads its input from `r`.
     pub fn new(mut r: R) -> ImageResult<Self> {
         let ctx = read_avif(&mut r, ParseStrictness::Normal).map_err(error_map)?;
-        let coded = ctx.primary_item_coded_data().unwrap_or_default();
-
         let mut primary_decoder = dav1d::Decoder::new().map_err(error_map)?;
+        let coded = ctx.primary_item_coded_data().unwrap_or(&[]);
         primary_decoder
-            .send_data(coded.to_vec(), None, None, None)
+            .send_data(Box::from(coded), None, None, None)
             .map_err(error_map)?;
         let picture = primary_decoder.get_picture().map_err(error_map)?;
-        let alpha_item = ctx.alpha_item_coded_data().unwrap_or_default();
+        let alpha_item = ctx.alpha_item_coded_data().unwrap_or(&[]);
         let alpha_picture = if !alpha_item.is_empty() {
-            let mut alpha_decoder = dav1d::Decoder::new().map_err(error_map)?;
+            let mut alpha_decoder = dav1d::Decoder::new().unwrap();
             alpha_decoder
-                .send_data(alpha_item.to_vec(), None, None, None)
+                .send_data(Box::from(alpha_item), None, None, None)
                 .map_err(error_map)?;
             Some(alpha_decoder.get_picture().map_err(error_map)?)
         } else {
             None
         };
-        let icc_profile = ctx
-            .icc_colour_information()
-            .map(|x| x.ok().unwrap_or_default())
-            .map(|x| x.to_vec());
-
         assert_eq!(picture.bit_depth(), 8);
         Ok(AvifDecoder {
             inner: PhantomData,
             picture,
             alpha_picture,
-            icc_profile,
         })
     }
 }
@@ -90,10 +82,6 @@ impl<'a, R: 'a + Read> ImageDecoder<'a> for AvifDecoder<R> {
 
     fn color_type(&self) -> ColorType {
         ColorType::Rgba8
-    }
-
-    fn icc_profile(&mut self) -> Option<Vec<u8>> {
-        self.icc_profile.clone()
     }
 
     fn into_reader(self) -> ImageResult<Self::Reader> {
