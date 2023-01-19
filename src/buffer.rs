@@ -1672,7 +1672,6 @@ mod benchmarks {
     use test;
 
     use super::{ConvertBuffer, GrayImage, ImageBuffer, Pixel, RgbImage};
-    use crate::GenericImage;
 
     #[bench]
     fn conversion(b: &mut test::Bencher) {

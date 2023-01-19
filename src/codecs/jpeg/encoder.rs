@@ -745,6 +745,7 @@ fn build_huffman_segment(
 fn build_quantization_segment(m: &mut Vec<u8>, precision: u8, identifier: u8, qtable: &[u8; 64]) {
     m.clear();
 
+    #[allow(clippy::bool_to_int_with_if)] // clearer
     let p = if precision == 8 { 0 } else { 1 };
 
     let pqtq = (p << 4) | identifier;

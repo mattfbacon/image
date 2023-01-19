@@ -228,9 +228,6 @@ impl<R: Read> GifFrameIterator<R> {
     fn new(decoder: GifDecoder<R>) -> GifFrameIterator<R> {
         let (width, height) = decoder.dimensions();
 
-        // TODO: Avoid this cast
-        let (width, height) = (width as u32, height as u32);
-
         // intentionally ignore the background color for web compatibility
 
         // create the first non disposed frame
@@ -413,7 +410,7 @@ pub struct GifEncoder<W: Write> {
 }
 
 impl<W: Write> GifEncoder<W> {
-    /// Creates a new GIF encoder.
+    /// Creates a new GIF encoder with a speed of 1. This prioritizes quality over performance at any cost.
     pub fn new(w: W) -> GifEncoder<W> {
         Self::new_with_speed(w, 1)
     }

@@ -404,9 +404,9 @@ impl SampleLayout {
     /// image. Two samples may return the same index, even when one of them is out of bounds. This
     /// happens when all strides are `0`, i.e. the image is an arbitrarily large monochrome image.
     pub fn index_ignoring_bounds(&self, channel: usize, x: usize, y: usize) -> Option<usize> {
-        let idx_c = (channel as usize).checked_mul(self.channel_stride);
-        let idx_x = (x as usize).checked_mul(self.width_stride);
-        let idx_y = (y as usize).checked_mul(self.height_stride);
+        let idx_c = channel.checked_mul(self.channel_stride);
+        let idx_x = x.checked_mul(self.width_stride);
+        let idx_y = y.checked_mul(self.height_stride);
 
         let (idx_c, idx_x, idx_y) = match (idx_c, idx_x, idx_y) {
             (Some(idx_c), Some(idx_x), Some(idx_y)) => (idx_c, idx_x, idx_y),
