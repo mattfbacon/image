@@ -36,7 +36,7 @@ scoped_threadpool = { version = "0.1", optional = true }
 tiff = { version = "0.8.0", optional = true }
 ravif = { version = "0.8.0", optional = true }
 rgb = { version = "0.8.25", optional = true }
-mp4parse = { git = "https://github.com/mozilla/mp4parse-rust", optional = true }
+mp4parse = { git = "https://github.com/mozilla/mp4parse-rust", rev = "aaad770a75b115931377b2b65e9b7a30812b77ed", optional = true }
 dav1d = { version = "0.9", optional = true }
 dcv-color-primitives = { version = "0.5", optional = true }
 color_quant = "1.1"
