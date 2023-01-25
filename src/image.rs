@@ -96,7 +96,7 @@ impl ImageFormat {
                 "webp" => ImageFormat::WebP,
                 "tif" | "tiff" => ImageFormat::Tiff,
                 "tga" => ImageFormat::Tga,
-                "dds" => ImageFormat::Dds,
+                "dds" | "dxt1" | "dxt3" | "dxt5" => ImageFormat::Dds,
                 "bmp" => ImageFormat::Bmp,
                 "ico" => ImageFormat::Ico,
                 "hdr" => ImageFormat::Hdr,
