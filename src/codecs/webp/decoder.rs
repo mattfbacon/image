@@ -369,8 +369,11 @@ impl<'a, R: 'a + Read> ImageDecoder<'a> for WebPDecoder<R> {
 impl<'a, R: 'a + Read> AnimationDecoder<'a> for WebPDecoder<R> {
     fn into_frames(self) -> Frames<'a> {
         match self.image {
-            WebPImage::Lossy(_) | WebPImage::Lossless(_) => {
-                Frames::new(Box::new(std::iter::empty()))
+            WebPImage::Lossy(..) | WebPImage::Lossless(..) => {
+                Frames::new(Box::new(std::iter::once_with(move || {
+                    let image = crate::DynamicImage::from_decoder(self)?.into_rgba8();
+                    Ok(crate::Frame::new(image))
+                })))
             }
             WebPImage::Extended(extended_image) => extended_image.into_frames(),
         }

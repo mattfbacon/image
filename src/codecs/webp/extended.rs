@@ -102,9 +102,33 @@ impl ExtendedImage {
     }
 
     pub(crate) fn into_frames<'a>(self) -> Frames<'a> {
+        let (frames, anim_info) = match self.image {
+            ExtendedImageData::Animation { frames, anim_info } => (frames, anim_info),
+            ExtendedImageData::Static(single) => {
+                return Frames::new(Box::new(std::iter::once_with(move || {
+                    Ok(match single {
+                        WebPStatic::LossyWithAlpha(image) => Frame::new(image),
+                        WebPStatic::LossyWithoutAlpha(image) => {
+                            Frame::new(crate::DynamicImage::from(image).into_rgba8())
+                        }
+                        WebPStatic::Lossless(image) => {
+                            let width = image.width.into();
+                            let image = RgbaImage::from_fn(width, image.height.into(), |x, y| {
+                                let [a, r, g, b] = image.buf
+                                    [usize::try_from(y * width + x).unwrap()]
+                                .to_be_bytes();
+                                Rgba([r, g, b, a])
+                            });
+                            Frame::new(image)
+                        }
+                    })
+                })));
+            }
+        };
+
         struct FrameIterator {
-            image: ExtendedImage,
-            index: usize,
+            anim_info: WebPAnimatedInfo,
+            frames: std::vec::IntoIter<AnimatedFrame>,
             canvas: RgbaImage,
         }
 
@@ -112,37 +136,22 @@ impl ExtendedImage {
             type Item = ImageResult<Frame>;
 
             fn next(&mut self) -> Option<Self::Item> {
-                if let ExtendedImageData::Animation { frames, anim_info } = &self.image.image {
-                    let frame = frames.get(self.index);
-                    match frame {
-                        Some(anim_image) => {
-                            self.index += 1;
-                            ExtendedImage::draw_subimage(
-                                &mut self.canvas,
-                                anim_image,
-                                anim_info.background_color,
-                            )
-                        }
-                        None => None,
-                    }
-                } else {
-                    None
-                }
+                let frame = self.frames.next()?;
+                ExtendedImage::draw_subimage(
+                    &mut self.canvas,
+                    &frame,
+                    self.anim_info.background_color,
+                )
             }
         }
 
         let width = self.info.canvas_width;
         let height = self.info.canvas_height;
-        let background_color =
-            if let ExtendedImageData::Animation { ref anim_info, .. } = self.image {
-                anim_info.background_color
-            } else {
-                Rgba([0, 0, 0, 0])
-            };
+        let background_color = anim_info.background_color;
 
         let frame_iter = FrameIterator {
-            image: self,
-            index: 0,
+            frames: frames.into_iter(),
+            anim_info,
             canvas: RgbaImage::from_pixel(width, height, background_color),
         };
 
