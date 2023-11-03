@@ -14,20 +14,21 @@ targets = [
 vulnerability = "deny"
 unmaintained = "warn"
 yanked = "deny"
-ignore = [
-    "RUSTSEC-2020-0071", # https://rustsec.org/advisories/RUSTSEC-2020-0071 - Potential segfault in the time crate.
-    "RUSTSEC-2020-0159", # https://rustsec.org/advisories/RUSTSEC-2020-0159 - Potential segfault in `localtime_r` invocations.
-]
+ignore = []
 
 
 [bans]
 multiple-versions = "deny"
 wildcards = "allow" # at least until https://github.com/EmbarkStudios/cargo-deny/issues/241 is fixed
 deny = []
-skip = []
+skip = [
+    { name = "num-derive" } # ravif transatively depends on 0.3 and 0.4.
+]
 skip-tree = [
     { name = "criterion" },  # dev-dependency
     { name = "quickcheck" }, # dev-dependency
+    { name = "dav1d" }, # TODO: needs upgrade
+    { name = "clap" },
 ]
 
 

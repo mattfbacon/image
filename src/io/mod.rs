@@ -10,8 +10,19 @@ pub use self::reader::Reader;
 /// Set of supported strict limits for a decoder.
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 #[allow(missing_copy_implementations)]
-#[non_exhaustive]
-pub struct LimitSupport {}
+#[allow(clippy::manual_non_exhaustive)]
+pub struct LimitSupport {
+    _non_exhaustive: (),
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for LimitSupport {
+    fn default() -> LimitSupport {
+        LimitSupport {
+            _non_exhaustive: (),
+        }
+    }
+}
 
 /// Resource limits for decoding.
 ///
@@ -35,8 +46,8 @@ pub struct LimitSupport {}
 /// [`LimitSupport`]: ./struct.LimitSupport.html
 /// [`ImageDecoder::set_limits`]: ../trait.ImageDecoder.html#method.set_limits
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-#[allow(missing_copy_implementations)] // may not be Copy in the future? idk
-#[non_exhaustive]
+#[allow(missing_copy_implementations)]
+#[allow(clippy::manual_non_exhaustive)]
 pub struct Limits {
     /// The maximum allowed image width. This limit is strict. The default is no limit.
     pub max_image_width: Option<u32>,

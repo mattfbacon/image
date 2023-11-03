@@ -34,8 +34,7 @@
 //!
 //! ```rust,no_run
 //! # use std::io::{Write, Cursor};
-//! # use image::ImageOutputFormat;
-//! # use image::DynamicImage;
+//! # use image::{DynamicImage, ImageOutputFormat};
 //! # #[cfg(feature = "png")]
 //! # fn main() -> Result<(), image::ImageError> {
 //! # let img: DynamicImage = unimplemented!();
@@ -76,11 +75,40 @@
 //!
 //! # Low level encoding/decoding API
 //!
-//! The [`ImageDecoder`] and [`ImageDecoderRect`] traits are implemented for many image file
-//! formats. They decode image data by directly on raw byte slices. Given an ImageDecoder, you can
-//! produce a DynamicImage via [`DynamicImage::from_decoder`].
+//! Implementations of [`ImageEncoder`] provides low level control over encoding:
+//! ```rust,no_run
+//! # use std::io::Write;
+//! # use image::DynamicImage;
+//! # use image::ImageEncoder;
+//! # #[cfg(feature = "jpeg")]
+//! # fn main() -> Result<(), image::ImageError> {
+//! # use image::codecs::jpeg::JpegEncoder;
+//! # let img: DynamicImage = unimplemented!();
+//! # let writer: Box<dyn Write> = unimplemented!();
+//! let encoder = JpegEncoder::new_with_quality(&mut writer, 95);
+//! img.write_with_encoder(encoder)?;
+//! # Ok(())
+//! # }
+//! # #[cfg(not(feature = "jpeg"))] fn main() {}
+//! ```
+//! While [`ImageDecoder`] and [`ImageDecoderRect`] give access to more advanced decoding options:
 //!
-//! [`ImageEncoder`] provides the analogous functionality for encoding image data.
+//! ```rust,no_run
+//! # use std::io::Read;
+//! # use image::DynamicImage;
+//! # use image::ImageDecoder;
+//! # #[cfg(feature = "png")]
+//! # fn main() -> Result<(), image::ImageError> {
+//! # use image::codecs::png::PngDecoder;
+//! # let img: DynamicImage = unimplemented!();
+//! # let reader: Box<dyn Read> = unimplemented!();
+//! let decoder = PngDecoder::new(&mut reader)?;
+//! let icc = decoder.icc_profile();
+//! let img = DynamicImage::from_decoder(decoder)?;
+//! # Ok(())
+//! # }
+//! # #[cfg(not(feature = "png"))] fn main() {}
+//! ```
 //!
 //! [`DynamicImage::from_decoder`]: enum.DynamicImage.html#method.from_decoder
 //! [`ImageDecoderRect`]: trait.ImageDecoderRect.html
@@ -92,7 +120,6 @@
 #![deny(deprecated)]
 #![deny(missing_copy_implementations)]
 #![cfg_attr(all(test, feature = "benchmarks"), feature(test))]
-// it's a bit of a pain otherwise
 // it's a backwards compatibility break
 #![allow(clippy::wrong_self_convention, clippy::enum_variant_names)]
 #![allow(clippy::tabs_in_doc_comments)]
@@ -170,21 +197,24 @@ pub mod flat;
 ///
 /// # Supported formats
 ///
+/// <!--- NOTE: Make sure to keep this table in sync with the README -->
+///
 /// | Format | Decoding | Encoding |
 /// | ------ | -------- | -------- |
-/// | PNG    | All supported color types | Same as decoding |
-/// | JPEG   | Baseline and progressive | Baseline JPEG |
-/// | GIF    | Yes | Yes |
+/// | AVIF   | Only 8-bit | Lossy |
 /// | BMP    | Yes | Rgb8, Rgba8, Gray8, GrayA8 |
+/// | DDS    | DXT1, DXT3, DXT5 | No |
+/// | Farbfeld | Yes | Yes |
+/// | GIF    | Yes | Yes |
 /// | ICO    | Yes | Yes |
+/// | JPEG   | Baseline and progressive | Baseline JPEG |
+/// | OpenEXR  | Rgb32F, Rgba32F (no dwa compression) | Rgb32F, Rgba32F (no dwa compression) |
+/// | PNG    | All supported color types | Same as decoding |
+/// | PNM    | PBM, PGM, PPM, standard PAM | Yes |
+/// | QOI    | Yes | Yes |
+/// | TGA    | Yes | Rgb8, Rgba8, Bgr8, Bgra8, Gray8, GrayA8 |
 /// | TIFF   | Baseline(no fax support) + LZW + PackBits | Rgb8, Rgba8, Gray8 |
 /// | WebP   | Yes | Rgb8, Rgba8 |
-/// | AVIF   | Only 8-bit | Lossy |
-/// | PNM    | PBM, PGM, PPM, standard PAM | Yes |
-/// | DDS    | DXT1, DXT3, DXT5 | No |
-/// | TGA    | Yes | Rgb8, Rgba8, Bgr8, Bgra8, Gray8, GrayA8 |
-/// | OpenEXR  | Rgb32F, Rgba32F (no dwa compression) | Rgb32F, Rgba32F (no dwa compression) |
-/// | farbfeld | Yes | Yes |
 ///
 /// ## A note on format specific features
 ///
@@ -239,7 +269,7 @@ pub mod codecs {
     pub mod tga;
     #[cfg(feature = "tiff")]
     pub mod tiff;
-    #[cfg(any(feature = "webp", feature = "webp-encoder"))]
+    #[cfg(feature = "webp")]
     pub mod webp;
 }
 

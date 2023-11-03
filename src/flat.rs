@@ -51,7 +51,7 @@ use crate::error::{
     UnsupportedError, UnsupportedErrorKind,
 };
 use crate::image::{GenericImage, GenericImageView};
-use crate::traits::{Pixel, PixelWithColorType};
+use crate::traits::Pixel;
 use crate::ImageBuffer;
 
 /// A flat buffer over a (multi channel) image.
@@ -424,6 +424,9 @@ impl SampleLayout {
     /// Assumes that the image is backed by some sufficiently large buffer. Then computation can
     /// not overflow as we could represent the maximum coordinate. Since overflow is defined either
     /// way, this method can not be unsafe.
+    ///
+    /// Behavior is *unspecified* if the index is out of bounds or this sample layout would require
+    /// a buffer larger than `isize::MAX` bytes.
     pub fn in_bounds_index(&self, c: u8, x: u32, y: u32) -> usize {
         let (c_stride, x_stride, y_stride) = self.strides_cwh();
         (y as usize * y_stride) + (x as usize * x_stride) + (c as usize * c_stride)
@@ -591,11 +594,14 @@ impl<Buffer> FlatSamples<Buffer> {
     /// There is no automatic conversion.
     pub fn as_view<P>(&self) -> Result<View<&[P::Subpixel], P>, Error>
     where
-        P: PixelWithColorType,
+        P: Pixel,
         Buffer: AsRef<[P::Subpixel]>,
     {
         if self.layout.channels != P::CHANNEL_COUNT {
-            return Err(Error::WrongColor(P::COLOR_TYPE));
+            return Err(Error::ChannelCountMismatch(
+                self.layout.channels,
+                P::CHANNEL_COUNT,
+            ));
         }
 
         let as_ref = self.samples.as_ref();
@@ -630,11 +636,14 @@ impl<Buffer> FlatSamples<Buffer> {
     /// intended.
     pub fn as_view_with_mut_samples<P>(&mut self) -> Result<View<&mut [P::Subpixel], P>, Error>
     where
-        P: PixelWithColorType,
+        P: Pixel,
         Buffer: AsMut<[P::Subpixel]>,
     {
         if self.layout.channels != P::CHANNEL_COUNT {
-            return Err(Error::WrongColor(P::COLOR_TYPE));
+            return Err(Error::ChannelCountMismatch(
+                self.layout.channels,
+                P::CHANNEL_COUNT,
+            ));
         }
 
         let as_mut = self.samples.as_mut();
@@ -665,7 +674,7 @@ impl<Buffer> FlatSamples<Buffer> {
     /// `ImageBuffer::from_raw`.
     pub fn as_view_mut<P>(&mut self) -> Result<ViewMut<&mut [P::Subpixel], P>, Error>
     where
-        P: PixelWithColorType,
+        P: Pixel,
         Buffer: AsMut<[P::Subpixel]>,
     {
         if !self.layout.is_normal(NormalForm::PixelPacked) {
@@ -673,7 +682,10 @@ impl<Buffer> FlatSamples<Buffer> {
         }
 
         if self.layout.channels != P::CHANNEL_COUNT {
-            return Err(Error::WrongColor(P::COLOR_TYPE));
+            return Err(Error::ChannelCountMismatch(
+                self.layout.channels,
+                P::CHANNEL_COUNT,
+            ));
         }
 
         let as_mut = self.samples.as_mut();
@@ -760,7 +772,7 @@ impl<Buffer> FlatSamples<Buffer> {
     /// not release any allocation.
     pub fn try_into_buffer<P>(self) -> Result<ImageBuffer<P, Buffer>, (Error, Self)>
     where
-        P: PixelWithColorType + 'static,
+        P: Pixel + 'static,
         P::Subpixel: 'static,
         Buffer: Deref<Target = [P::Subpixel]>,
     {
@@ -769,7 +781,10 @@ impl<Buffer> FlatSamples<Buffer> {
         }
 
         if self.layout.channels != P::CHANNEL_COUNT {
-            return Err((Error::WrongColor(P::COLOR_TYPE), self));
+            return Err((
+                Error::ChannelCountMismatch(self.layout.channels, P::CHANNEL_COUNT),
+                self,
+            ));
         }
 
         if !self.fits(self.samples.deref().len()) {
@@ -1023,6 +1038,9 @@ pub enum Error {
     /// directly memory unsafe although that will likely alias pixels. One scenario is when you
     /// want to construct an `Rgba` image but have only 3 bytes per pixel and for some reason don't
     /// care about the value of the alpha channel even though you need `Rgba`.
+    ChannelCountMismatch(u8, u8),
+
+    /// Deprecated - ChannelCountMismatch is used instead
     WrongColor(ColorType),
 }
 
@@ -1490,6 +1508,9 @@ impl From<Error> for ImageError {
                 ImageFormatHint::Unknown,
                 NormalFormRequiredError(form),
             )),
+            Error::ChannelCountMismatch(_lc, _pc) => ImageError::Parameter(
+                ParameterError::from_kind(ParameterErrorKind::DimensionMismatch),
+            ),
             Error::WrongColor(color) => {
                 ImageError::Unsupported(UnsupportedError::from_format_and_kind(
                     ImageFormatHint::Unknown,
@@ -1514,6 +1535,11 @@ impl fmt::Display for Error {
                     NormalForm::RowMajorPacked => "be packed and in row major form",
                     NormalForm::Unaliased => "not have any aliasing channels",
                 }
+            ),
+            Error::ChannelCountMismatch(layout_channels, pixel_channels) => write!(
+                f,
+                "The channel count of the chosen pixel (={}) does agree with the layout (={})",
+                pixel_channels, layout_channels
             ),
             Error::WrongColor(color) => write!(
                 f,

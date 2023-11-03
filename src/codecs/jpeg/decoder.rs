@@ -92,6 +92,10 @@ impl<'a, R: 'a + Read> ImageDecoder<'a> for JpegDecoder<R> {
         ColorType::from_jpeg(self.metadata.pixel_format)
     }
 
+    fn icc_profile(&mut self) -> Option<Vec<u8>> {
+        self.decoder.icc_profile()
+    }
+
     fn into_reader(mut self) -> ImageResult<Self::Reader> {
         let mut data = self.decoder.decode().map_err(ImageError::from_jpeg)?;
         data = match self.decoder.info().unwrap().pixel_format {
@@ -1260,7 +1264,7 @@ mod tests {
     #[cfg(feature = "benchmarks")]
     #[bench]
     fn bench_cmyk_to_rgb(b: &mut Bencher) {
-        let mut v = Vec::with_capacity((W * H * 4) as usize);
+        let mut v = Vec::with_capacity(W * H * 4);
         for c in 0..=255 {
             for k in 0..=255 {
                 v.push(c as u8);

@@ -67,6 +67,7 @@ where
             }
             tiff::ColorType::GrayA(n) => return Err(err_unknown_color_type(n.saturating_mul(2))),
             tiff::ColorType::RGB(n) => return Err(err_unknown_color_type(n.saturating_mul(3))),
+            tiff::ColorType::YCbCr(n) => return Err(err_unknown_color_type(n.saturating_mul(3))),
             tiff::ColorType::RGBA(n) | tiff::ColorType::CMYK(n) => {
                 return Err(err_unknown_color_type(n.saturating_mul(4)))
             }
@@ -172,6 +173,14 @@ impl<'a, R: 'a + Read + Seek> ImageDecoder<'a> for TiffDecoder<R> {
 
     fn color_type(&self) -> ColorType {
         self.color_type
+    }
+
+    fn icc_profile(&mut self) -> Option<Vec<u8>> {
+        if let Some(decoder) = &mut self.inner {
+            decoder.get_tag_u8_vec(tiff::tags::Tag::Unknown(34675)).ok()
+        } else {
+            None
+        }
     }
 
     fn set_limits(&mut self, limits: crate::io::Limits) -> ImageResult<()> {
@@ -287,7 +296,16 @@ impl<W: Write + Seek> TiffEncoder<W> {
     /// Encodes the image `image` that has dimensions `width` and `height` and `ColorType` `c`.
     ///
     /// 16-bit types assume the buffer is native endian.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `width * height * color_type.bytes_per_pixel() != data.len()`.
     pub fn encode(self, data: &[u8], width: u32, height: u32, color: ColorType) -> ImageResult<()> {
+        assert_eq!(
+            (width as u64 * height as u64).saturating_mul(color.bytes_per_pixel() as u64),
+            data.len() as u64
+        );
+
         let mut encoder =
             tiff::encoder::TiffEncoder::new(self.w).map_err(ImageError::from_tiff_encode)?;
         match color {

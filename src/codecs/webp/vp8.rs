@@ -1259,7 +1259,7 @@ impl<R: Read> Vp8Decoder<R> {
 
             self.top = init_top_macroblocks(self.frame.width as usize);
             // Almost always the first macro block, except when non exists (i.e. `width == 0`)
-            self.left = self.top.get(0).cloned().unwrap_or_default();
+            self.left = self.top.first().cloned().unwrap_or_default();
 
             self.mbwidth = (self.frame.width + 15) / 16;
             self.mbheight = (self.frame.height + 15) / 16;
@@ -2033,6 +2033,7 @@ impl<R: Read> Vp8Decoder<R> {
         //high edge variance threshold
         let mut hev_threshold = 0;
 
+        #[allow(clippy::collapsible_else_if)]
         if self.frame.keyframe {
             if filter_level >= 40 {
                 hev_threshold = 2;
@@ -2594,7 +2595,7 @@ mod test {
 
     #[cfg(feature = "benchmarks")]
     fn make_sample_image() -> Vec<u8> {
-        let mut v = Vec::with_capacity((W * H * 4) as usize);
+        let mut v = Vec::with_capacity(W * H * 4);
         for c in 0u8..=255 {
             for k in 0u8..=255 {
                 v.push(c);
@@ -2632,7 +2633,7 @@ mod test {
         ];
 
         b.iter(|| {
-            black_box(predict_4x4(&mut v, W * 2, &modes, &res_data));
+            predict_4x4(&mut v, W * 2, &modes, &res_data);
         });
     }
 
@@ -2652,7 +2653,7 @@ mod test {
         let mut v = black_box(make_sample_image());
 
         b.iter(|| {
-            black_box(predict_bldpred(black_box(&mut v), 5, 5, W * 2));
+            predict_bldpred(black_box(&mut v), 5, 5, W * 2);
         });
     }
 
@@ -2662,7 +2663,7 @@ mod test {
         let mut v = black_box(make_sample_image());
 
         b.iter(|| {
-            black_box(predict_brdpred(black_box(&mut v), 5, 5, W * 2));
+            predict_brdpred(black_box(&mut v), 5, 5, W * 2);
         });
     }
 
@@ -2672,7 +2673,7 @@ mod test {
         let mut v = black_box(make_sample_image());
 
         b.iter(|| {
-            black_box(predict_bhepred(black_box(&mut v), 5, 5, W * 2));
+            predict_bhepred(black_box(&mut v), 5, 5, W * 2);
         });
     }
 
