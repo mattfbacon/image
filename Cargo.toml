@@ -18,16 +18,12 @@ repository = "https://github.com/image-rs/image"
 homepage = "https://github.com/image-rs/image"
 categories = ["multimedia::images", "multimedia::encoding", "encoding"]
 
-include = [
-    "/LICENSE",
-    "/README.md",
-    "/CHANGES.md",
-    "/src/",
-    "/benches/",
-]
+include = ["/LICENSE", "/README.md", "/CHANGES.md", "/src/", "/benches/"]
 
 [dependencies]
-bytemuck = { version = "1.7.0", features = ["extern_crate_alloc"] } # includes cast_vec
+bytemuck = { version = "1.7.0", features = [
+    "extern_crate_alloc",
+] } # includes cast_vec
 byteorder = "1.3.2"
 num-traits = "0.2.0"
 gif = { version = "0.12", optional = true }
@@ -52,11 +48,30 @@ quickcheck = "1"
 criterion = "0.5.0"
 # Keep this in sync with the jpeg dependency above. This is used to enable the platform_independent
 # feature when testing, so `cargo test` works correctly.
-jpeg = { package = "jpeg-decoder", version = "0.3.0", default-features = false, features = ["platform_independent"] }
+jpeg = { package = "jpeg-decoder", version = "0.3.0", default-features = false, features = [
+    "platform_independent",
+] }
 
 [features]
 # TODO: Add "avif" to this list while preparing for 0.24.0
-default = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld", "jpeg_rayon", "openexr", "qoi"]
+default = [
+    "gif",
+    "jpeg",
+    "ico",
+    "png",
+    "pnm",
+    "tga",
+    "tiff",
+    "webp",
+    "bmp",
+    "hdr",
+    "dxt",
+    "dds",
+    "farbfeld",
+    "jpeg_rayon",
+    "openexr",
+    "qoi",
+]
 
 ico = ["bmp", "png"]
 pnm = []
