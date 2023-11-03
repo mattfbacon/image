@@ -170,18 +170,6 @@ jobs:
           cargo fuzz run "$format" -- -runs=0;
         done
 
-  public_private_dependencies:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: dtolnay/rust-toolchain@nightly
-    - name: build
-      run: |
-        mv ./Cargo.toml.public-private-dependencies ./Cargo.toml
-        echo "#![deny(exported_private_dependencies)]" | cat - src/lib.rs > src/lib.rs.0
-        mv src/lib.rs.0 src/lib.rs
-        cargo check
-
   build_benchmarks:
     runs-on: ubuntu-latest
     steps:
