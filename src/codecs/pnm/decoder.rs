@@ -1,10 +1,6 @@
-use std::convert::TryFrom;
-use std::convert::TryInto;
 use std::error;
 use std::fmt::{self, Display};
-use std::io::{self, BufRead, Cursor, Read};
-use std::marker::PhantomData;
-use std::mem;
+use std::io::{self, Read};
 use std::num::ParseIntError;
 use std::str::{self, FromStr};
 
@@ -14,10 +10,10 @@ use crate::color::{ColorType, ExtendedColorType};
 use crate::error::{
     DecodingError, ImageError, ImageResult, UnsupportedError, UnsupportedErrorKind,
 };
-use crate::image::{self, ImageDecoder, ImageFormat};
+use crate::image::{ImageDecoder, ImageFormat};
 use crate::utils;
 
-use byteorder::{BigEndian, ByteOrder, NativeEndian};
+use byteorder_lite::{BigEndian, ByteOrder, NativeEndian};
 
 /// All errors that can occur when attempting to parse a PNM
 #[derive(Debug, Clone)]
@@ -60,6 +56,8 @@ enum DecoderError {
     UnexpectedByteInRaster(u8),
     /// Specified sample was out of bounds (e.g. >1 in B&W)
     SampleOutOfBounds(u8),
+    /// The image's maxval is zero
+    MaxvalZero,
     /// The image's maxval exceeds 0xFFFF
     MaxvalTooBig(u32),
 
@@ -133,6 +131,7 @@ impl Display for DecoderError {
             DecoderError::SampleOutOfBounds(val) => {
                 f.write_fmt(format_args!("Sample value {} outside of bounds", val))
             }
+            DecoderError::MaxvalZero => f.write_str("Image MAXVAL is zero"),
             DecoderError::MaxvalTooBig(maxval) => {
                 f.write_fmt(format_args!("Image MAXVAL exceeds {}: {}", 0xFFFF, maxval))
             }
@@ -232,7 +231,15 @@ enum TupleType {
 }
 
 trait Sample {
-    fn bytelen(width: u32, height: u32, samples: u32) -> ImageResult<usize>;
+    type Representation;
+
+    /// Representation size in bytes
+    fn sample_size() -> u32 {
+        std::mem::size_of::<Self::Representation>() as u32
+    }
+    fn bytelen(width: u32, height: u32, samples: u32) -> ImageResult<usize> {
+        Ok((width * height * samples * Self::sample_size()) as usize)
+    }
     fn from_bytes(bytes: &[u8], row_size: usize, output_buf: &mut [u8]) -> ImageResult<()>;
     fn from_ascii(reader: &mut dyn Read, output_buf: &mut [u8]) -> ImageResult<()>;
 }
@@ -253,7 +260,7 @@ pub struct PnmDecoder<R> {
     tuple: TupleType,
 }
 
-impl<R: BufRead> PnmDecoder<R> {
+impl<R: Read> PnmDecoder<R> {
     /// Create a new decoder that decodes from the stream ```read```
     pub fn new(mut buffered_read: R) -> ImageResult<PnmDecoder<R>> {
         let magic = buffered_read.read_magic_constant()?;
@@ -353,7 +360,7 @@ impl<R: BufRead> PnmDecoder<R> {
     }
 }
 
-trait HeaderReader: BufRead {
+trait HeaderReader: Read {
     /// Reads the two magic constant bytes
     fn read_magic_constant(&mut self) -> ImageResult<[u8; 2]> {
         let mut magic: [u8; 2] = [0, 0];
@@ -410,11 +417,18 @@ trait HeaderReader: BufRead {
         Ok(string)
     }
 
-    /// Read the next line
     fn read_next_line(&mut self) -> ImageResult<String> {
-        let mut buffer = String::new();
-        self.read_line(&mut buffer)?;
-        Ok(buffer)
+        let mut buffer = Vec::new();
+        loop {
+            let mut byte = [0];
+            if self.read(&mut byte)? == 0 || byte[0] == b'\n' {
+                break;
+            }
+            buffer.push(byte[0]);
+        }
+
+        String::from_utf8(buffer)
+            .map_err(|e| ImageError::Decoding(DecodingError::new(ImageFormat::Pnm.into(), e)))
     }
 
     fn read_next_u32(&mut self) -> ImageResult<u32> {
@@ -485,16 +499,15 @@ trait HeaderReader: BufRead {
             Some(Ok(c)) => return Err(DecoderError::NotNewlineAfterP7Magic(c).into()),
         }
 
-        let mut line = String::new();
+        let mut line;
         let mut height: Option<u32> = None;
         let mut width: Option<u32> = None;
         let mut depth: Option<u32> = None;
         let mut maxval: Option<u32> = None;
         let mut tupltype: Option<String> = None;
         loop {
-            line.truncate(0);
-            let len = self.read_line(&mut line)?;
-            if len == 0 {
+            line = self.read_next_line()?;
+            if line.is_empty() {
                 return Err(DecoderError::UnexpectedPnmHeaderEnd.into());
             }
             if line.as_bytes()[0] == b'#' {
@@ -566,27 +579,9 @@ trait HeaderReader: BufRead {
     }
 }
 
-impl<R> HeaderReader for R where R: BufRead {}
+impl<R> HeaderReader for R where R: Read {}
 
-/// Wrapper struct around a `Cursor<Vec<u8>>`
-pub struct PnmReader<R>(Cursor<Vec<u8>>, PhantomData<R>);
-impl<R> Read for PnmReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.0.read(buf)
-    }
-    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
-        if self.0.position() == 0 && buf.is_empty() {
-            mem::swap(buf, self.0.get_mut());
-            Ok(buf.len())
-        } else {
-            self.0.read_to_end(buf)
-        }
-    }
-}
-
-impl<'a, R: 'a + Read> ImageDecoder<'a> for PnmDecoder<R> {
-    type Reader = PnmReader<R>;
-
+impl<R: Read> ImageDecoder for PnmDecoder<R> {
     fn dimensions(&self) -> (u32, u32) {
         (self.header.width(), self.header.height())
     }
@@ -613,13 +608,6 @@ impl<'a, R: 'a + Read> ImageDecoder<'a> for PnmDecoder<R> {
         }
     }
 
-    fn into_reader(self) -> ImageResult<Self::Reader> {
-        Ok(PnmReader(
-            Cursor::new(image::decoder_to_vec(self)?),
-            PhantomData,
-        ))
-    }
-
     fn read_image(mut self, buf: &mut [u8]) -> ImageResult<()> {
         assert_eq!(u64::try_from(buf.len()), Ok(self.total_bytes()));
         match self.tuple {
@@ -630,6 +618,10 @@ impl<'a, R: 'a + Read> ImageDecoder<'a> for PnmDecoder<R> {
             TupleType::GrayU8 => self.read_samples::<U8>(1, buf),
             TupleType::GrayU16 => self.read_samples::<U16>(1, buf),
         }
+    }
+
+    fn read_image_boxed(self: Box<Self>, buf: &mut [u8]) -> ImageResult<()> {
+        (*self).read_image(buf)
     }
 }
 
@@ -659,10 +651,33 @@ impl<R: Read> PnmDecoder<R> {
                     .checked_mul(components)
                     .ok_or(DecoderError::Overflow)?;
 
-                S::from_bytes(&bytes, row_size, buf)
+                S::from_bytes(&bytes, row_size, buf)?;
             }
-            SampleEncoding::Ascii => self.read_ascii::<S>(buf),
+            SampleEncoding::Ascii => {
+                self.read_ascii::<S>(buf)?;
+            }
+        };
+
+        // Scale samples if 8bit or 16bit is not saturated
+        let current_sample_max = self.header.maximal_sample();
+        let target_sample_max = 256_u32.pow(S::sample_size()) - 1;
+
+        if current_sample_max != target_sample_max {
+            let factor = target_sample_max as f32 / current_sample_max as f32;
+
+            if S::sample_size() == 1 {
+                buf.iter_mut().for_each(|v| {
+                    *v = (*v as f32 * factor).round() as u8;
+                })
+            } else if S::sample_size() == 2 {
+                for chunk in buf.chunks_exact_mut(2) {
+                    let v = NativeEndian::read_u16(chunk);
+                    NativeEndian::write_u16(chunk, (v as f32 * factor).round() as u16);
+                }
+            }
         }
+
+        Ok(())
     }
 
     fn read_ascii<Basic: Sample>(&mut self, output_buf: &mut [u8]) -> ImageResult<()> {
@@ -701,9 +716,7 @@ where
 }
 
 impl Sample for U8 {
-    fn bytelen(width: u32, height: u32, samples: u32) -> ImageResult<usize> {
-        Ok((width * height * samples) as usize)
-    }
+    type Representation = u8;
 
     fn from_bytes(bytes: &[u8], _row_size: usize, output_buf: &mut [u8]) -> ImageResult<()> {
         output_buf.copy_from_slice(bytes);
@@ -719,9 +732,7 @@ impl Sample for U8 {
 }
 
 impl Sample for U16 {
-    fn bytelen(width: u32, height: u32, samples: u32) -> ImageResult<usize> {
-        Ok((width * height * samples * 2) as usize)
-    }
+    type Representation = u16;
 
     fn from_bytes(bytes: &[u8], _row_size: usize, output_buf: &mut [u8]) -> ImageResult<()> {
         output_buf.copy_from_slice(bytes);
@@ -745,6 +756,8 @@ impl Sample for U16 {
 // be ignored. Also, contrary to rgb, black pixels are encoded as a 1 while white is 0. This will
 // need to be reversed for the grayscale output.
 impl Sample for PbmBit {
+    type Representation = u8;
+
     fn bytelen(width: u32, height: u32, samples: u32) -> ImageResult<usize> {
         let count = width * samples;
         let linelen = (count / 8) + ((count % 8) != 0) as u32;
@@ -783,9 +796,7 @@ impl Sample for PbmBit {
 
 // Encoded just like a normal U8 but we check the values.
 impl Sample for BWBit {
-    fn bytelen(width: u32, height: u32, samples: u32) -> ImageResult<usize> {
-        U8::bytelen(width, height, samples)
-    }
+    type Representation = u8;
 
     fn from_bytes(bytes: &[u8], row_size: usize, output_buf: &mut [u8]) -> ImageResult<()> {
         U8::from_bytes(bytes, row_size, output_buf)?;
@@ -809,6 +820,7 @@ impl DecodableImageHeader for BitmapHeader {
 impl DecodableImageHeader for GraymapHeader {
     fn tuple_type(&self) -> ImageResult<TupleType> {
         match self.maxwhite {
+            0 => Err(DecoderError::MaxvalZero.into()),
             v if v <= 0xFF => Ok(TupleType::GrayU8),
             v if v <= 0xFFFF => Ok(TupleType::GrayU16),
             _ => Err(DecoderError::MaxvalTooBig(self.maxwhite).into()),
@@ -819,6 +831,7 @@ impl DecodableImageHeader for GraymapHeader {
 impl DecodableImageHeader for PixmapHeader {
     fn tuple_type(&self) -> ImageResult<TupleType> {
         match self.maxval {
+            0 => Err(DecoderError::MaxvalZero.into()),
             v if v <= 0xFF => Ok(TupleType::RGBU8),
             v if v <= 0xFFFF => Ok(TupleType::RGBU16),
             _ => Err(DecoderError::MaxvalTooBig(self.maxval).into()),
@@ -829,6 +842,7 @@ impl DecodableImageHeader for PixmapHeader {
 impl DecodableImageHeader for ArbitraryHeader {
     fn tuple_type(&self) -> ImageResult<TupleType> {
         match self.tupltype {
+            _ if self.maxval == 0 => Err(DecoderError::MaxvalZero.into()),
             None if self.depth == 1 => Ok(TupleType::GrayU8),
             None if self.depth == 2 => Err(ImageError::Unsupported(
                 UnsupportedError::from_format_and_kind(
@@ -937,8 +951,8 @@ ENDHDR
         assert_eq!(
             image,
             vec![
-                0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0x00,
-                0x00, 0x01
+                0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00,
+                0x00, 0xFF
             ]
         );
         match PnmDecoder::new(&pamdata[..]).unwrap().into_inner() {
@@ -1236,6 +1250,25 @@ ENDHDR
             ) => (),
             _ => panic!("Decoded header is incorrect"),
         }
+    }
+
+    #[test]
+    fn ppm_ascii() {
+        let ascii = b"P3 1 1 2000\n0 1000 2000";
+        let decoder = PnmDecoder::new(&ascii[..]).unwrap();
+        let mut image = vec![0; decoder.total_bytes() as usize];
+        decoder.read_image(&mut image).unwrap();
+        assert_eq!(
+            image,
+            [
+                0_u16.to_ne_bytes(),
+                (u16::MAX / 2 + 1).to_ne_bytes(),
+                u16::MAX.to_ne_bytes()
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+        );
     }
 
     #[test]

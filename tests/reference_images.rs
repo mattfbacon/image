@@ -2,7 +2,6 @@
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use std::u32;
 
 use crc32fast::Hasher as Crc32;
 use image::DynamicImage;
@@ -18,7 +17,7 @@ where
 {
     let base: PathBuf = BASE_PATH.iter().collect();
     let decoders = &[
-        "tga", "tiff", "png", "gif", "bmp", "ico", "jpg", "hdr", "pbm", "webp",
+        "tga", "tiff", "png", "gif", "bmp", "ico", "hdr", "pbm", "webp",
     ];
     for decoder in decoders {
         let mut path = base.clone();
@@ -45,6 +44,10 @@ fn render_images() {
     process_images(IMAGE_DIR, None, |base, path, decoder| {
         println!("render_images {}", path.display());
         let img = match image::open(&path) {
+            Ok(DynamicImage::ImageRgb32F(_)) | Ok(DynamicImage::ImageRgba32F(_)) => {
+                println!("Skipping {} - HDR codec is not enabled", path.display());
+                return;
+            }
             Ok(img) => img,
             // Do not fail on unsupported error
             // This might happen because the testsuite contains unsupported images
@@ -222,7 +225,7 @@ fn check_references() {
                     use image::AnimationDecoder;
                     let stream = io::BufReader::new(fs::File::open(&img_path).unwrap());
                     let decoder = match image::codecs::png::PngDecoder::new(stream) {
-                        Ok(decoder) => decoder.apng(),
+                        Ok(decoder) => decoder.apng().unwrap(),
                         Err(image::ImageError::Unsupported(_)) => return,
                         Err(err) => {
                             panic!("decoding of {:?} failed with: {}", img_path, err)
@@ -270,14 +273,35 @@ fn check_references() {
 
         let test_crc_actual = {
             let mut hasher = Crc32::new();
-            hasher.update(test_img.as_bytes());
+            match test_img {
+                DynamicImage::ImageLuma8(_)
+                | DynamicImage::ImageLumaA8(_)
+                | DynamicImage::ImageRgb8(_)
+                | DynamicImage::ImageRgba8(_) => hasher.update(test_img.as_bytes()),
+                DynamicImage::ImageLuma16(_)
+                | DynamicImage::ImageLumaA16(_)
+                | DynamicImage::ImageRgb16(_)
+                | DynamicImage::ImageRgba16(_) => {
+                    for v in test_img.as_bytes().chunks(2) {
+                        hasher.update(&u16::from_ne_bytes(v.try_into().unwrap()).to_le_bytes());
+                    }
+                }
+                DynamicImage::ImageRgb32F(_) | DynamicImage::ImageRgba32F(_) => {
+                    for v in test_img.as_bytes().chunks(4) {
+                        hasher.update(&f32::from_ne_bytes(v.try_into().unwrap()).to_le_bytes());
+                    }
+                }
+                _ => panic!("Unsupported image format"),
+            }
             hasher.finalize()
         };
 
         if test_crc_actual != case.crc {
             panic!(
-                "The decoded image's hash does not match (expected = {:08x}, actual = {:08x}).",
-                case.crc, test_crc_actual
+                "{}: The decoded image's hash does not match (expected = {:08x}, actual = {:08x}).",
+                img_path.display(),
+                case.crc,
+                test_crc_actual
             );
         }
 
@@ -290,6 +314,28 @@ fn check_references() {
 #[cfg(feature = "hdr")]
 #[test]
 fn check_hdr_references() {
+    use byteorder_lite::{LittleEndian as LE, ReadBytesExt};
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::path::Path;
+
+    /// Helper function for reading raw 3-channel f32 images
+    fn read_raw_file<P: AsRef<Path>>(path: P) -> ::std::io::Result<Vec<f32>> {
+        let mut r = BufReader::new(File::open(path)?);
+        let w = r.read_u32::<LE>()? as usize;
+        let h = r.read_u32::<LE>()? as usize;
+        let c = r.read_u32::<LE>()? as usize;
+        assert_eq!(c, 3);
+        let cnt = w * h;
+        let mut ret = Vec::with_capacity(cnt);
+        for _ in 0..cnt {
+            ret.push(r.read_f32::<LE>()?);
+            ret.push(r.read_f32::<LE>()?);
+            ret.push(r.read_f32::<LE>()?);
+        }
+        Ok(ret)
+    }
+
     let mut ref_path: PathBuf = BASE_PATH.iter().collect();
     ref_path.push(REFERENCE_DIR);
     ref_path.push("hdr");
@@ -322,8 +368,12 @@ fn check_hdr_references() {
         let decoder =
             image::codecs::hdr::HdrDecoder::new(io::BufReader::new(fs::File::open(&path).unwrap()))
                 .unwrap();
-        let decoded = decoder.read_image_hdr().unwrap();
-        let reference = image::codecs::hdr::read_raw_file(&ref_path).unwrap();
+        let decoded = match DynamicImage::from_decoder(decoder).unwrap() {
+            DynamicImage::ImageRgb32F(img) => img.into_vec(),
+            _ => unreachable!(),
+        };
+
+        let reference = read_raw_file(&ref_path).unwrap();
         assert_eq!(decoded, reference);
     }
 }

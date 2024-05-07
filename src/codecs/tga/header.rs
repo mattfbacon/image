@@ -1,8 +1,8 @@
 use crate::{
     error::{UnsupportedError, UnsupportedErrorKind},
-    ColorType, ImageError, ImageFormat, ImageResult,
+    ExtendedColorType, ImageError, ImageFormat, ImageResult,
 };
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder_lite::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Read, Write};
 
 pub(crate) const ALPHA_BIT_MASK: u8 = 0b1111;
@@ -80,23 +80,28 @@ pub(crate) struct Header {
 impl Header {
     /// Load the header with values from pixel information.
     pub(crate) fn from_pixel_info(
-        color_type: ColorType,
+        color_type: ExtendedColorType,
         width: u16,
         height: u16,
+        use_rle: bool,
     ) -> ImageResult<Self> {
         let mut header = Self::default();
 
         if width > 0 && height > 0 {
-            let (num_alpha_bits, other_channel_bits, image_type) = match color_type {
-                ColorType::Rgba8 => (8, 24, ImageType::RawTrueColor),
-                ColorType::Rgb8 => (0, 24, ImageType::RawTrueColor),
-                ColorType::La8 => (8, 8, ImageType::RawGrayScale),
-                ColorType::L8 => (0, 8, ImageType::RawGrayScale),
+            let (num_alpha_bits, other_channel_bits, image_type) = match (color_type, use_rle) {
+                (ExtendedColorType::Rgba8, true) => (8, 24, ImageType::RunTrueColor),
+                (ExtendedColorType::Rgb8, true) => (0, 24, ImageType::RunTrueColor),
+                (ExtendedColorType::La8, true) => (8, 8, ImageType::RunGrayScale),
+                (ExtendedColorType::L8, true) => (0, 8, ImageType::RunGrayScale),
+                (ExtendedColorType::Rgba8, false) => (8, 24, ImageType::RawTrueColor),
+                (ExtendedColorType::Rgb8, false) => (0, 24, ImageType::RawTrueColor),
+                (ExtendedColorType::La8, false) => (8, 8, ImageType::RawGrayScale),
+                (ExtendedColorType::L8, false) => (0, 8, ImageType::RawGrayScale),
                 _ => {
                     return Err(ImageError::Unsupported(
                         UnsupportedError::from_format_and_kind(
                             ImageFormat::Tga.into(),
-                            UnsupportedErrorKind::Color(color_type.into()),
+                            UnsupportedErrorKind::Color(color_type),
                         ),
                     ))
                 }

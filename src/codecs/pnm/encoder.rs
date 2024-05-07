@@ -7,14 +7,14 @@ use std::io::Write;
 use super::AutoBreak;
 use super::{ArbitraryHeader, ArbitraryTuplType, BitmapHeader, GraymapHeader, PixmapHeader};
 use super::{HeaderRecord, PnmHeader, PnmSubtype, SampleEncoding};
-use crate::color::{ColorType, ExtendedColorType};
+use crate::color::ExtendedColorType;
 use crate::error::{
     ImageError, ImageResult, ParameterError, ParameterErrorKind, UnsupportedError,
     UnsupportedErrorKind,
 };
 use crate::image::{ImageEncoder, ImageFormat};
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder_lite::{BigEndian, WriteBytesExt};
 
 enum HeaderStrategy {
     Dynamic,
@@ -144,27 +144,20 @@ impl<W: Write> PnmEncoder<W> {
         image: S,
         width: u32,
         height: u32,
-        color: ColorType,
+        color: ExtendedColorType,
     ) -> ImageResult<()>
     where
         S: Into<FlatSamples<'s>>,
     {
         let image = image.into();
         match self.header {
-            HeaderStrategy::Dynamic => {
-                self.write_dynamic_header(image, width, height, color.into())
-            }
+            HeaderStrategy::Dynamic => self.write_dynamic_header(image, width, height, color),
             HeaderStrategy::Subtype(subtype) => {
-                self.write_subtyped_header(subtype, image, width, height, color.into())
+                self.write_subtyped_header(subtype, image, width, height, color)
             }
-            HeaderStrategy::Chosen(ref header) => Self::write_with_header(
-                &mut self.writer,
-                header,
-                image,
-                width,
-                height,
-                color.into(),
-            ),
+            HeaderStrategy::Chosen(ref header) => {
+                Self::write_with_header(&mut self.writer, header, image, width, height, color)
+            }
         }
     }
 
@@ -289,16 +282,20 @@ impl<W: Write> PnmEncoder<W> {
 }
 
 impl<W: Write> ImageEncoder for PnmEncoder<W> {
+    #[track_caller]
     fn write_image(
         mut self,
         buf: &[u8],
         width: u32,
         height: u32,
-        color_type: ColorType,
+        color_type: ExtendedColorType,
     ) -> ImageResult<()> {
+        let expected_buffer_len = color_type.buffer_size(width, height);
         assert_eq!(
-            (width as u64 * height as u64).saturating_mul(color_type.bytes_per_pixel() as u64),
-            buf.len() as u64
+            expected_buffer_len,
+            buf.len() as u64,
+            "Invalid buffer length: expected {expected_buffer_len} got {} for {width}x{height} image",
+            buf.len(),
         );
 
         self.encode(buf, width, height, color_type)

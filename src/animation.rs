@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::iter::Iterator;
 use std::time::Duration;
 
 use crate::error::ImageResult;
@@ -141,7 +140,7 @@ impl Delay {
         // > `0 < b <= (u32::MAX + 1)/(millis + 1)`
         // Corollary: millis <= u32::MAX
 
-        const MILLIS_BOUND: u128 = u32::max_value() as u128;
+        const MILLIS_BOUND: u128 = u32::MAX as u128;
 
         let millis = duration.as_millis().min(MILLIS_BOUND);
         let submillis = (duration.as_nanos() % 1_000_000) as u32;
@@ -293,7 +292,7 @@ impl Ratio {
     }
 
     #[inline]
-    pub(crate) fn to_integer(&self) -> u32 {
+    pub(crate) fn to_integer(self) -> u32 {
         self.numer / self.denom
     }
 }

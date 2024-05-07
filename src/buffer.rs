@@ -10,10 +10,11 @@ use crate::color::{FromColor, Luma, LumaA, Rgb, Rgba};
 use crate::dynimage::{save_buffer, save_buffer_with_format, write_buffer_with_format};
 use crate::error::ImageResult;
 use crate::flat::{FlatSamples, SampleLayout};
-use crate::image::{GenericImage, GenericImageView, ImageEncoder, ImageFormat, ImageOutputFormat};
+use crate::image::{GenericImage, GenericImageView, ImageEncoder, ImageFormat};
 use crate::math::Rect;
 use crate::traits::{EncodableLayout, Pixel, PixelWithColorType};
 use crate::utils::expand_packed;
+use crate::DynamicImage;
 
 /// Iterate over pixel refs.
 pub struct Pixels<'a, P: Pixel + 'a>
@@ -888,7 +889,7 @@ where
     Container: Deref<Target = [P::Subpixel]> + DerefMut,
 {
     // TODO: choose name under which to expose.
-    fn inner_pixels_mut(&mut self) -> &mut [P::Subpixel] {
+    pub(crate) fn inner_pixels_mut(&mut self) -> &mut [P::Subpixel] {
         let len = Self::image_buffer_len(self.width, self.height).unwrap();
         &mut self.data[..len]
     }
@@ -1043,15 +1044,11 @@ where
 {
     /// Writes the buffer to a writer in the specified format.
     ///
-    /// Assumes the writer is buffered. In most cases,
-    /// you should wrap your writer in a `BufWriter` for best performance.
-    ///
-    /// See [`ImageOutputFormat`](enum.ImageOutputFormat.html) for
-    /// supported types.
-    pub fn write_to<W, F>(&self, writer: &mut W, format: F) -> ImageResult<()>
+    /// Assumes the writer is buffered. In most cases, you should wrap your writer in a `BufWriter`
+    /// for best performance.
+    pub fn write_to<W>(&self, writer: &mut W, format: ImageFormat) -> ImageResult<()>
     where
         W: std::io::Write + std::io::Seek,
-        F: Into<ImageOutputFormat>,
         P: PixelWithColorType,
     {
         // This is valid as the subpixel is u8.
@@ -1173,10 +1170,6 @@ where
         self.dimensions()
     }
 
-    fn bounds(&self) -> (u32, u32, u32, u32) {
-        (0, 0, self.width, self.height)
-    }
-
     fn get_pixel(&self, x: u32, y: u32) -> P {
         *self.get_pixel(x, y)
     }
@@ -1263,6 +1256,8 @@ where
 // and it is more generic.
 impl<P: Pixel> ImageBuffer<P, Vec<P::Subpixel>> {
     /// Creates a new image buffer based on a `Vec<P::Subpixel>`.
+    ///
+    /// all the pixels of this image have a value of zero, regardless of the data type or number of channels.
     ///
     /// # Panics
     ///
@@ -1427,20 +1422,101 @@ pub type Rgb32FImage = ImageBuffer<Rgb<f32>, Vec<f32>>;
 /// where the backing container is a flattened vector of floats.
 pub type Rgba32FImage = ImageBuffer<Rgba<f32>, Vec<f32>>;
 
+impl From<DynamicImage> for RgbImage {
+    fn from(value: DynamicImage) -> Self {
+        value.into_rgb8()
+    }
+}
+
+impl From<DynamicImage> for RgbaImage {
+    fn from(value: DynamicImage) -> Self {
+        value.into_rgba8()
+    }
+}
+
+impl From<DynamicImage> for GrayImage {
+    fn from(value: DynamicImage) -> Self {
+        value.into_luma8()
+    }
+}
+
+impl From<DynamicImage> for GrayAlphaImage {
+    fn from(value: DynamicImage) -> Self {
+        value.into_luma_alpha8()
+    }
+}
+
+impl From<DynamicImage> for Rgb16Image {
+    fn from(value: DynamicImage) -> Self {
+        value.into_rgb16()
+    }
+}
+
+impl From<DynamicImage> for Rgba16Image {
+    fn from(value: DynamicImage) -> Self {
+        value.into_rgba16()
+    }
+}
+
+impl From<DynamicImage> for Gray16Image {
+    fn from(value: DynamicImage) -> Self {
+        value.into_luma16()
+    }
+}
+
+impl From<DynamicImage> for GrayAlpha16Image {
+    fn from(value: DynamicImage) -> Self {
+        value.into_luma_alpha16()
+    }
+}
+
+impl From<DynamicImage> for Rgba32FImage {
+    fn from(value: DynamicImage) -> Self {
+        value.into_rgba32f()
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::{GrayImage, ImageBuffer, ImageOutputFormat, RgbImage};
+    use super::{GrayImage, ImageBuffer, RgbImage};
     use crate::math::Rect;
     use crate::GenericImage as _;
-    use crate::{color, Rgb};
+    use crate::ImageFormat;
+    use crate::{Luma, LumaA, Pixel, Rgb, Rgba};
+    use num_traits::Zero;
 
     #[test]
     /// Tests if image buffers from slices work
     fn slice_buffer() {
         let data = [0; 9];
-        let buf: ImageBuffer<color::Luma<u8>, _> = ImageBuffer::from_raw(3, 3, &data[..]).unwrap();
+        let buf: ImageBuffer<Luma<u8>, _> = ImageBuffer::from_raw(3, 3, &data[..]).unwrap();
         assert_eq!(&*buf, &data[..])
     }
+
+    macro_rules! new_buffer_zero_test {
+        ($test_name:ident, $pxt:ty) => {
+            #[test]
+            fn $test_name() {
+                let buffer = ImageBuffer::<$pxt, Vec<<$pxt as Pixel>::Subpixel>>::new(2, 2);
+                assert!(buffer
+                    .iter()
+                    .all(|p| *p == <$pxt as Pixel>::Subpixel::zero()));
+            }
+        };
+    }
+
+    new_buffer_zero_test!(luma_u8_zero_test, Luma<u8>);
+    new_buffer_zero_test!(luma_u16_zero_test, Luma<u16>);
+    new_buffer_zero_test!(luma_f32_zero_test, Luma<f32>);
+    new_buffer_zero_test!(luma_a_u8_zero_test, LumaA<u8>);
+    new_buffer_zero_test!(luma_a_u16_zero_test, LumaA<u16>);
+    new_buffer_zero_test!(luma_a_f32_zero_test, LumaA<f32>);
+    new_buffer_zero_test!(rgb_u8_zero_test, Rgb<u8>);
+    new_buffer_zero_test!(rgb_u16_zero_test, Rgb<u16>);
+    new_buffer_zero_test!(rgb_f32_zero_test, Rgb<f32>);
+    new_buffer_zero_test!(rgb_a_u8_zero_test, Rgba<u8>);
+    new_buffer_zero_test!(rgb_a_u16_zero_test, Rgba<u16>);
+    new_buffer_zero_test!(rgb_a_f32_zero_test, Rgba<f32>);
 
     #[test]
     fn get_pixel() {
@@ -1621,9 +1697,10 @@ mod test {
     #[cfg(feature = "png")]
     fn write_to_with_large_buffer() {
         // A buffer of 1 pixel, padded to 4 bytes as would be common in, e.g. BMP.
+
         let img: GrayImage = ImageBuffer::from_raw(1, 1, vec![0u8; 4]).unwrap();
         let mut buffer = std::io::Cursor::new(vec![]);
-        assert!(img.write_to(&mut buffer, ImageOutputFormat::Png).is_ok());
+        assert!(img.write_to(&mut buffer, ImageFormat::Png).is_ok());
     }
 
     #[test]
